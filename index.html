@@ -122,6 +122,11 @@
     padding:13px 30px;border-radius:40px;text-decoration:none;
   }
   .credit{margin-top:22px;font-size:10px;letter-spacing:1px;color:rgba(227,202,140,.45);text-transform:uppercase}
+  .mybtn{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;z-index:39;
+    background:var(--gold);color:var(--lacquer-deep);border:none;font-family:inherit;
+    font-size:13px;font-weight:600;padding:10px 20px;border-radius:30px;cursor:pointer;
+    box-shadow:0 4px 16px rgba(110,20,35,.25);display:flex;align-items:center;gap:8px}
+  .mybtn span{background:var(--lacquer);color:var(--rice);border-radius:20px;padding:1px 8px;font-size:12px}
 
   /* ---- NÚT THÊM MÓN ---- */
   .add{
@@ -229,7 +234,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v6 · bếp Google</p>
+    <p class="credit">E-Menu by MT One · v7 · đơn của tôi</p>
   </footer>
 
   <a class="kds-link" id="toKds" href="#">🍳 Màn hình bếp</a>
@@ -405,6 +410,7 @@ window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
   sync();drawSheet();};
 
 let currentTable = new URLSearchParams(location.search).get('ban')||'';
+let myOrders = [];   // lịch sử món khách đã gọi trong phiên này
 
 /* Gọi Apps Script bằng thẻ <script> — đi trọn chuyển hướng giống gõ URL tay.
    Đây là cách CHẮC CHẮN ghi/đọc được Apps Script từ web ngoài. */
@@ -425,18 +431,56 @@ function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
   const {sum}=totals();
+  const items=Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty,price:v.price}));
   const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,
-    items:Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty}))}));
+    items:items.map(({name,qty})=>({name,qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
   jsonp('do=order&data='+data);   // gửi, không cần chờ phản hồi
+  // lưu lại đơn này vào lịch sử của khách
+  myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
   setTimeout(()=>{
     for(const k in cart)delete cart[k];
     document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
     sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
-      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p></div>`;
-    setTimeout(closeSheet,2200);
+      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
+      <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
+    updateMyBtn();
   },1400);
+}
+
+/* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
+function updateMyBtn(){
+  let b=document.getElementById('myBtn');
+  if(!myOrders.length){ if(b)b.remove(); return; }
+  const n=myOrders.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0);
+  if(!b){
+    b=document.createElement('button');
+    b.id='myBtn'; b.className='mybtn';
+    b.onclick=showMyOrders;
+    document.body.appendChild(b);
+  }
+  b.innerHTML='🧾 Đơn của tôi <span>'+n+'</span>';
+}
+
+/* bảng tổng các món khách đã gọi */
+function showMyOrders(){
+  if(!myOrders.length)return;
+  let html='<h3>Món bạn đã gọi</h3><p class="sub">Bàn '+(myOrders[0].table)+' · '+myOrders.length+' lần gọi</p>';
+  let grand=0;
+  const gom={};
+  myOrders.forEach(o=>{
+    html+=`<div style="font-size:12px;color:var(--gold);font-weight:600;margin:14px 0 4px">🕐 ${o.time}</div>`;
+    o.items.forEach(i=>{
+      html+=`<div class="crow"><div class="cn">${i.name}</div><div class="mini"><span>×${i.qty}</span></div><div class="cp">${fmt(i.qty*i.price)}</div></div>`;
+      grand+=i.qty*i.price;
+      gom[i.name]=(gom[i.name]||0)+i.qty;
+    });
+  });
+  html+=`<div class="grand"><span class="lbl">Tổng tất cả</span><span class="amt">${fmt(grand)}</span></div>
+    <p class="sub" style="text-align:center">Vui lòng thanh toán tại quầy. Cảm ơn bạn!</p>`;
+  sheet.innerHTML=html;
+  overlay.classList.add('show');sheet.classList.add('show');
 }
 
 /* ===== MÀN HÌNH BẾP (chống chớp) ===== */
