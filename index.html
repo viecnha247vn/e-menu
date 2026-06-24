@@ -229,7 +229,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v5 · đã nối Sheets</p>
+    <p class="credit">E-Menu by MT One · v6 · bếp Google</p>
   </footer>
 
   <a class="kds-link" id="toKds" href="#">🍳 Màn hình bếp</a>
@@ -441,7 +441,7 @@ function sendOrder(){
 
 /* ===== MÀN HÌNH BẾP (chống chớp) ===== */
 const kds=document.getElementById('kds'), wrap=document.querySelector('.wrap');
-document.getElementById('toKds').onclick=e=>{e.preventDefault();wrap.style.display='none';kds.classList.add('show');lastSig='';fetchKDS();};
+document.getElementById('toKds').onclick=e=>{e.preventDefault();window.open(API_URL+'?page=kds','_blank');};
 document.getElementById('toMenu').onclick=e=>{e.preventDefault();kds.classList.remove('show');wrap.style.display='';};
 
 let lastSig=''; // chữ ký dữ liệu để biết có đổi không
