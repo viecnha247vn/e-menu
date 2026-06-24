@@ -244,7 +244,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v12 · đa kênh</p>
+    <p class="credit">E-Menu by MT One · v13 · chuyển trang</p>
   </footer>
 
   <!-- Thanh giỏ nổi -->
@@ -420,7 +420,11 @@ window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
   sync();drawSheet();};
 
 let currentTable = new URLSearchParams(location.search).get('ban')||'';
-let myOrders = [];   // lịch sử món khách đã gọi trong phiên này
+let myOrders = [];   // lịch sử món khách đã gọi (lưu trên máy khách)
+
+function myKey(){ return 'nhv_my_'+(currentTable||'x'); }
+function loadMy(){ try{ myOrders=JSON.parse(localStorage.getItem(myKey())||'[]'); }catch(e){ myOrders=[]; } }
+function saveMy(){ try{ localStorage.setItem(myKey(), JSON.stringify(myOrders)); }catch(e){} }
 
 /* Gọi Apps Script bằng thẻ <script> — đi trọn chuyển hướng giống gõ URL tay.
    Đây là cách CHẮC CHẮN ghi/đọc được Apps Script từ web ngoài. */
@@ -436,41 +440,24 @@ function jsonp(extra, onOk){
   setTimeout(()=>finish(null),20000); // phòng treo
 }
 
-/* gửi lệnh tới Apps Script bằng NHIỀU kênh song song — thiết bị chặn kênh này thì còn kênh khác.
-   Backend chống trùng bằng oid nên không lo ghi 2 lần. */
-function sendToServer(extra){
-  const url=API_URL+'?'+extra+'&t='+Date.now();
-  // 1) ảnh ẩn (ít bị chặn nhất, chạy cả trên iPhoneSafari)
-  try{ const img=new Image(); img.src=url; }catch(e){}
-  // 2) iframe ẩn
-  try{ const f=document.createElement('iframe'); f.style.display='none'; f.src=url;
-       document.body.appendChild(f); setTimeout(()=>{try{f.remove();}catch(e){}},15000); }catch(e){}
-  // 3) fetch ngầm
-  try{ fetch(url,{mode:'no-cors'}); }catch(e){}
-}
-
-/* gửi đơn lên Sheet (đa kênh + mã chống trùng) */
+/* gửi đơn bằng CHUYỂN TRANG — cách chắc chắn nhất, không thiết bị nào chặn được.
+   Trình duyệt sang trang xác nhận của Google rồi tự quay lại menu. */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
   const {sum}=totals();
   const items=Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty,price:v.price}));
   const lan=myOrders.length+1;
-  const oid=Date.now()+'_'+Math.floor(Math.random()*100000);   // mã đơn duy nhất
+  const oid=Date.now()+'_'+Math.floor(Math.random()*100000);
   const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,lan:lan,
     items:items.map(({name,qty})=>({name,qty}))}));
+  // lưu đơn vào máy khách trước khi chuyển trang
+  myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
+  saveMy();
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  sendToServer('do=order&oid='+oid+'&data='+data);
-  setTimeout(()=>{
-    myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
-    for(const k in cart)delete cart[k];
-    document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
-    sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
-      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
-      <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
-    updateMyBtn();
-  },1600);
+  const back=location.origin+location.pathname+'?ban='+encodeURIComponent(tbl);
+  location.href=API_URL+'?do=order&oid='+oid+'&back='+encodeURIComponent(back)+'&data='+data;
 }
 
 /* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
@@ -521,9 +508,11 @@ function refreshTableBar(){
 }
 window.changeTable=()=>{
   const t=prompt('Nhập số bàn của bạn:',currentTable||'');
-  if(t!==null && t.trim()!==''){ currentTable=t.trim(); refreshTableBar(); }
+  if(t!==null && t.trim()!==''){ currentTable=t.trim(); refreshTableBar(); loadMy(); updateMyBtn(); }
 };
 refreshTableBar();
+loadMy();
+updateMyBtn();
 </script>
 </body>
 </html>
