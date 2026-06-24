@@ -244,7 +244,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v14</p>
+    <p class="credit">E-Menu by MT One · v15</p>
   </footer>
 
   <!-- Thanh giỏ nổi -->
@@ -262,7 +262,6 @@
 
 
 <script>
-var INIT_TABLE = "<?!= table ?>";   // Apps Script điền số bàn từ ?ban=
 const menu = [
   { cat:"Khai vị", vn:"Starters", items:[
     { name:"Gỏi cuốn tôm thịt", en:"Fresh spring rolls", price:"45.000đ",
@@ -418,13 +417,15 @@ window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
   document.querySelectorAll('[data-add]').forEach(s=>{if(s.dataset.add===k)s._render();});
   sync();drawSheet();};
 
-let currentTable = (window.INIT_TABLE||'').trim();
-let myOrders = [];   // lịch sử món khách đã gọi trong phiên (giữ trong bộ nhớ)
+let currentTable = new URLSearchParams(location.search).get('ban')||'';
+let myOrders = [];   // lịch sử món khách đã gọi (lưu trên máy khách)
 
-function loadMy(){}   // không cần lưu ngoài: trang không rời đi khi đặt đơn
-function saveMy(){}
+function myKey(){ return 'nhv_my_'+(currentTable||'x'); }
+function loadMy(){ try{ myOrders=JSON.parse(localStorage.getItem(myKey())||'[]'); }catch(e){ myOrders=[]; } }
+function saveMy(){ try{ localStorage.setItem(myKey(), JSON.stringify(myOrders)); }catch(e){} }
 
-/* gửi đơn bằng google.script.run — kênh nội bộ của Google, KHÔNG CORS, không bị chặn */
+/* gửi đơn tới /api/order trên CÙNG Vercel (cùng nhà -> không CORS, không bị chặn).
+   Máy chủ Vercel sẽ chuyển tiếp sang Apps Script (ghi Sheet + Telegram). */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
@@ -433,20 +434,21 @@ function sendOrder(){
   const lan=myOrders.length+1;
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  google.script.run
-    .withSuccessHandler(function(res){
-      myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
-      for(const k in cart)delete cart[k];
-      document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
-      sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
-        <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
-        <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
-      updateMyBtn();
-    })
-    .withFailureHandler(function(err){
-      btn.disabled=false; btn.textContent='Lỗi, bấm gửi lại';
-    })
-    .submitOrder({table:tbl,total:sum,lan:lan,items:items.map(({name,qty})=>({name,qty}))});
+  fetch('/api/order',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({table:tbl,total:sum,lan:lan,items:items.map(({name,qty})=>({name,qty}))})
+  }).then(r=>r.json()).then(res=>{
+    if(!res.ok) throw new Error(res.error||'fail');
+    myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
+    saveMy();
+    for(const k in cart)delete cart[k];
+    document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
+    sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
+      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
+      <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
+    updateMyBtn();
+  }).catch(()=>{ btn.disabled=false; btn.textContent='Lỗi, bấm gửi lại'; });
 }
 
 /* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
