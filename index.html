@@ -244,7 +244,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v13 · chuyển trang</p>
+    <p class="credit">E-Menu by MT One · v14</p>
   </footer>
 
   <!-- Thanh giỏ nổi -->
@@ -262,6 +262,7 @@
 
 
 <script>
+var INIT_TABLE = "<?!= table ?>";   // Apps Script điền số bàn từ ?ban=
 const menu = [
   { cat:"Khai vị", vn:"Starters", items:[
     { name:"Gỏi cuốn tôm thịt", en:"Fresh spring rolls", price:"45.000đ",
@@ -352,8 +353,6 @@ const obs = new IntersectionObserver(es=>{
 [...main.children].forEach(s=>obs.observe(s));
 
 /* ===== GIỎ HÀNG ===== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbzQW-gW48aob19JaK3xElIU3Gx6llm6kANfCnpQVntzCuR0GtMRlkYOtACf9oy7RoLy/exec';
-const SECRET  = 'NHV2025'; // phải trùng SECRET trong Code.gs
 const cart = {};            // {tenMon: {price, qty}}
 const fmt = n => n.toLocaleString('vi-VN')+'đ';
 const cartbar = document.getElementById('cartbar');
@@ -419,45 +418,35 @@ window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
   document.querySelectorAll('[data-add]').forEach(s=>{if(s.dataset.add===k)s._render();});
   sync();drawSheet();};
 
-let currentTable = new URLSearchParams(location.search).get('ban')||'';
-let myOrders = [];   // lịch sử món khách đã gọi (lưu trên máy khách)
+let currentTable = (window.INIT_TABLE||'').trim();
+let myOrders = [];   // lịch sử món khách đã gọi trong phiên (giữ trong bộ nhớ)
 
-function myKey(){ return 'nhv_my_'+(currentTable||'x'); }
-function loadMy(){ try{ myOrders=JSON.parse(localStorage.getItem(myKey())||'[]'); }catch(e){ myOrders=[]; } }
-function saveMy(){ try{ localStorage.setItem(myKey(), JSON.stringify(myOrders)); }catch(e){} }
+function loadMy(){}   // không cần lưu ngoài: trang không rời đi khi đặt đơn
+function saveMy(){}
 
-/* Gọi Apps Script bằng thẻ <script> — đi trọn chuyển hướng giống gõ URL tay.
-   Đây là cách CHẮC CHẮN ghi/đọc được Apps Script từ web ngoài. */
-function jsonp(extra, onOk){
-  const cb='__jp_'+Date.now()+'_'+Math.floor(Math.random()*100000);
-  const s=document.createElement('script');
-  let done=false;
-  const finish=res=>{ if(done)return; done=true; delete window[cb]; s.remove(); onOk&&onOk(res); };
-  window[cb]=res=>finish(res);
-  s.onerror=()=>finish(null);
-  s.src=API_URL+'?callback='+cb+'&'+extra+'&t='+Date.now();
-  document.body.appendChild(s);
-  setTimeout(()=>finish(null),20000); // phòng treo
-}
-
-/* gửi đơn bằng CHUYỂN TRANG — cách chắc chắn nhất, không thiết bị nào chặn được.
-   Trình duyệt sang trang xác nhận của Google rồi tự quay lại menu. */
+/* gửi đơn bằng google.script.run — kênh nội bộ của Google, KHÔNG CORS, không bị chặn */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
   const {sum}=totals();
   const items=Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty,price:v.price}));
   const lan=myOrders.length+1;
-  const oid=Date.now()+'_'+Math.floor(Math.random()*100000);
-  const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,lan:lan,
-    items:items.map(({name,qty})=>({name,qty}))}));
-  // lưu đơn vào máy khách trước khi chuyển trang
-  myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
-  saveMy();
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  const back=location.origin+location.pathname+'?ban='+encodeURIComponent(tbl);
-  location.href=API_URL+'?do=order&oid='+oid+'&back='+encodeURIComponent(back)+'&data='+data;
+  google.script.run
+    .withSuccessHandler(function(res){
+      myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
+      for(const k in cart)delete cart[k];
+      document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
+      sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
+        <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
+        <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
+      updateMyBtn();
+    })
+    .withFailureHandler(function(err){
+      btn.disabled=false; btn.textContent='Lỗi, bấm gửi lại';
+    })
+    .submitOrder({table:tbl,total:sum,lan:lan,items:items.map(({name,qty})=>({name,qty}))});
 }
 
 /* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
