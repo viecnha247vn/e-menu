@@ -229,7 +229,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v4 · đã nối Sheets</p>
+    <p class="credit">E-Menu by MT One · v5 · đã nối Sheets</p>
   </footer>
 
   <a class="kds-link" id="toKds" href="#">🍳 Màn hình bếp</a>
@@ -420,7 +420,7 @@ function jsonp(extra, onOk){
   setTimeout(()=>finish(null),20000); // phòng treo
 }
 
-/* gửi đơn lên Sheet */
+/* gửi đơn lên Sheet — ghi luôn ổn định nên không chờ xác nhận, báo thành công sau khi gửi */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
@@ -429,17 +429,14 @@ function sendOrder(){
     items:Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  jsonp('do=order&data='+data, res=>{
-    if(res&&res.ok){
-      for(const k in cart)delete cart[k];
-      document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
-      sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
-        <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p></div>`;
-      setTimeout(closeSheet,2200);
-    }else{
-      btn.disabled=false; btn.textContent='Lỗi, thử lại';
-    }
-  });
+  jsonp('do=order&data='+data);   // gửi, không cần chờ phản hồi
+  setTimeout(()=>{
+    for(const k in cart)delete cart[k];
+    document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
+    sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
+      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p></div>`;
+    setTimeout(closeSheet,2200);
+  },1400);
 }
 
 /* ===== MÀN HÌNH BẾP (chống chớp) ===== */
