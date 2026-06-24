@@ -244,7 +244,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v10 · gửi chắc</p>
+    <p class="credit">E-Menu by MT One · v11 · iframe</p>
   </footer>
 
   <!-- Thanh giỏ nổi -->
@@ -436,7 +436,16 @@ function jsonp(extra, onOk){
   setTimeout(()=>finish(null),20000); // phòng treo
 }
 
-/* gửi đơn lên Sheet — gửi 2 lần cách nhau chút cho chắc, rồi báo thành công */
+/* gửi lệnh tới Apps Script bằng IFRAME ẩn — nạp y như gõ URL tay, không bị chặn script-tag */
+function sendToServer(extra){
+  const f=document.createElement('iframe');
+  f.style.display='none';
+  f.src=API_URL+'?'+extra+'&t='+Date.now();
+  document.body.appendChild(f);
+  setTimeout(()=>{ try{f.remove();}catch(e){} },15000);
+}
+
+/* gửi đơn lên Sheet qua iframe ẩn (ổn định, không bị chặn) */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
@@ -447,7 +456,7 @@ function sendOrder(){
     items:items.map(({name,qty})=>({name,qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  jsonp('do=order&data='+data);                 // gửi
+  sendToServer('do=order&data='+data);          // gửi qua iframe
   setTimeout(()=>{
     myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
     for(const k in cart)delete cart[k];
@@ -456,7 +465,7 @@ function sendOrder(){
       <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
       <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
     updateMyBtn();
-  },1400);
+  },1600);
 }
 
 /* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
