@@ -127,6 +127,11 @@
     font-size:13px;font-weight:600;padding:10px 20px;border-radius:30px;cursor:pointer;
     box-shadow:0 4px 16px rgba(110,20,35,.25);display:flex;align-items:center;gap:8px}
   .mybtn span{background:var(--lacquer);color:var(--rice);border-radius:20px;padding:1px 8px;font-size:12px}
+  .tablebar{position:sticky;top:51px;z-index:18;background:var(--leaf);color:#fff;
+    display:flex;align-items:center;justify-content:space-between;padding:9px 20px;font-size:13.5px}
+  .tablebar b{color:#fff;font-size:15px}
+  .tablebar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);
+    font-family:inherit;font-size:12px;font-weight:600;padding:5px 13px;border-radius:20px;cursor:pointer}
 
   /* ---- NÚT THÊM MÓN ---- */
   .add{
@@ -228,13 +233,18 @@
 
   <nav id="nav"></nav>
 
+  <div id="tableBar" class="tablebar" style="display:none">
+    <span>🪑 Bạn đang ở <b id="tableBarNum"></b></span>
+    <button onclick="changeTable()">Đổi bàn</button>
+  </div>
+
   <main id="menu"></main>
 
   <footer>
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v8 · gửi ổn định</p>
+    <p class="credit">E-Menu by MT One · v9 · gọi thêm</p>
   </footer>
 
   <!-- Thanh giỏ nổi -->
@@ -391,10 +401,18 @@ function drawSheet(){
       <div class="mini"><button onclick="chg('${k.replace(/'/g,"\\'")}',-1)">−</button><span>${cart[k].qty}</span><button onclick="chg('${k.replace(/'/g,"\\'")}',1)">+</button></div>
       <div class="cp">${fmt(cart[k].qty*cart[k].price)}</div></div>`;
   }
+  const tablePick = currentTable
+    ? `<div class="tablepick"><label>Số bàn</label>
+         <div style="display:flex;align-items:center;gap:10px">
+           <input id="tableNo" type="number" value="${currentTable}" readonly style="background:#f0ece2;flex:1">
+           <span style="font-size:12px;color:var(--leaf);font-weight:600">✓ đã quét QR</span>
+         </div></div>`
+    : `<div class="tablepick"><label>Số bàn</label>
+         <input id="tableNo" type="number" inputmode="numeric" placeholder="VD: 5" value=""></div>`;
   sheet.innerHTML=`<h3>Giỏ của bạn</h3><p class="sub">Kiểm tra món rồi gửi xuống bếp</p>${rows}
-    <div class="tablepick"><label>Số bàn</label><input id="tableNo" type="number" inputmode="numeric" placeholder="VD: 5" value="${currentTable}"></div>
+    ${tablePick}
     <div class="grand"><span class="lbl">Tổng cộng</span><span class="amt">${fmt(sum)}</span></div>
-    <button class="send" id="sendBtn">Gửi đơn xuống bếp</button>`;
+    <button class="send" id="sendBtn">${myOrders.length?'Gọi thêm cho bàn '+currentTable:'Gửi đơn xuống bếp'}</button>`;
   document.getElementById('sendBtn').onclick=sendOrder;
 }
 window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
@@ -424,7 +442,8 @@ function sendOrder(){
   if(!tbl){document.getElementById('tableNo').focus();return;}
   const {sum}=totals();
   const items=Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty,price:v.price}));
-  const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,
+  const lan=myOrders.length+1;   // lần gọi thứ mấy của bàn này (trong phiên khách)
+  const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,lan:lan,
     items:items.map(({name,qty})=>({name,qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
@@ -490,6 +509,22 @@ function showMyOrders(){
 }
 
 const wrap=document.querySelector('.wrap');
+
+/* hiện dải "Bạn đang ở Bàn X" nếu đã quét QR */
+function refreshTableBar(){
+  const bar=document.getElementById('tableBar');
+  if(currentTable){
+    document.getElementById('tableBarNum').textContent='Bàn '+currentTable;
+    bar.style.display='flex';
+  }else{
+    bar.style.display='none';
+  }
+}
+window.changeTable=()=>{
+  const t=prompt('Nhập số bàn của bạn:',currentTable||'');
+  if(t!==null && t.trim()!==''){ currentTable=t.trim(); refreshTableBar(); }
+};
+refreshTableBar();
 </script>
 </body>
 </html>
