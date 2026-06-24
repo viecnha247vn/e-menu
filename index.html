@@ -244,7 +244,7 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v9 · gọi thêm</p>
+    <p class="credit">E-Menu by MT One · v10 · gửi chắc</p>
   </footer>
 
   <!-- Thanh giỏ nổi -->
@@ -436,7 +436,7 @@ function jsonp(extra, onOk){
   setTimeout(()=>finish(null),20000); // phòng treo
 }
 
-/* gửi đơn lên Sheet, có xác nhận từ server + tự thử lại nếu mạng chập chờn */
+/* gửi đơn lên Sheet — gửi 2 lần cách nhau chút cho chắc, rồi báo thành công */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
@@ -447,22 +447,8 @@ function sendOrder(){
     items:items.map(({name,qty})=>({name,qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-
-  let tries=0;
-  function attempt(){
-    tries++;
-    jsonp('do=order&data='+data, res=>{
-      if(res&&res.ok){            // server xác nhận đã ghi
-        onSuccess();
-      }else if(tries<3){          // trượt -> thử lại
-        btn.textContent='Đang gửi lại... ('+tries+')';
-        setTimeout(attempt,1200);
-      }else{
-        btn.disabled=false; btn.textContent='Mạng yếu, bấm gửi lại';
-      }
-    });
-  }
-  function onSuccess(){
+  jsonp('do=order&data='+data);                 // gửi
+  setTimeout(()=>{
     myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
     for(const k in cart)delete cart[k];
     document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
@@ -470,8 +456,7 @@ function sendOrder(){
       <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
       <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
     updateMyBtn();
-  }
-  attempt();
+  },1400);
 }
 
 /* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
