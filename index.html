@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nhà Hàng Việt · Thực đơn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --lacquer:#6E1423;      /* sơn mài đỏ */
+    --lacquer-deep:#4A0D18;
+    --gold:#C9A24B;          /* hoàng kim */
+    --gold-soft:#E3CA8C;
+    --rice:#F7F2E7;          /* nền gạo */
+    --rice-deep:#EFE7D4;
+    --ink:#241A16;
+    --ink-soft:#5C5048;
+    --leaf:#3D5A3C;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Be Vietnam Pro',sans-serif;
+    background:var(--rice);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:520px;margin:0 auto;background:var(--rice);min-height:100vh;position:relative}
+
+  /* ---- HERO ---- */
+  header{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(201,162,75,.18), transparent 55%),
+      linear-gradient(160deg,var(--lacquer) 0%,var(--lacquer-deep) 100%);
+    color:var(--rice);
+    padding:44px 28px 56px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
+    background:var(--rice);
+    -webkit-mask:radial-gradient(22px at 22px 34px,transparent 98%,#000) repeat-x;
+    mask:radial-gradient(22px at 22px 34px,transparent 98%,#000) repeat-x;
+    -webkit-mask-size:44px 34px;mask-size:44px 34px;
+  }
+  .seal{
+    width:54px;height:54px;border:1.5px solid var(--gold-soft);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+    font-family:'Playfair Display',serif;font-size:24px;color:var(--gold-soft);
+    letter-spacing:-1px;
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:4px;text-transform:uppercase;
+    color:var(--gold-soft);margin-bottom:10px;font-weight:500;
+  }
+  header h1{
+    font-family:'Playfair Display',serif;font-weight:700;
+    font-size:40px;line-height:1.05;letter-spacing:-.5px;
+  }
+  header h1 em{display:block;font-style:italic;font-weight:500;color:var(--gold-soft);font-size:30px;margin-top:2px}
+  .tagline{font-size:13px;color:rgba(247,242,231,.78);margin-top:14px;font-weight:300}
+
+  /* ---- NAV danh mục ---- */
+  nav{
+    position:sticky;top:0;z-index:20;background:var(--rice);
+    border-bottom:1px solid var(--rice-deep);
+    display:flex;gap:8px;padding:14px 20px;overflow-x:auto;
+    scrollbar-width:none;
+  }
+  nav::-webkit-scrollbar{display:none}
+  nav button{
+    flex:0 0 auto;font-family:inherit;font-size:13px;font-weight:500;
+    border:1px solid var(--rice-deep);background:transparent;color:var(--ink-soft);
+    padding:8px 16px;border-radius:40px;cursor:pointer;transition:.25s;white-space:nowrap;
+  }
+  nav button.on{background:var(--lacquer);color:var(--rice);border-color:var(--lacquer)}
+
+  /* ---- DANH MỤC ---- */
+  .cat{padding:30px 20px 6px}
+  .cat-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .cat-head h2{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--lacquer)}
+  .cat-head .vn{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600}
+  .cat-head .rule{flex:1;height:1px;background:var(--rice-deep)}
+
+  /* ---- MÓN ---- */
+  .dish{
+    display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rice-deep);
+    align-items:flex-start;
+  }
+  .dish:last-child{border-bottom:none}
+  .thumb{
+    width:84px;height:84px;flex:0 0 84px;border-radius:14px;object-fit:cover;
+    background:var(--rice-deep);box-shadow:0 4px 14px rgba(110,20,35,.12);
+  }
+  .info{flex:1;min-width:0}
+  .dish-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .dish-name{font-size:16px;font-weight:600;line-height:1.25}
+  .dish-name .en{display:block;font-size:11px;font-weight:300;color:var(--ink-soft);font-style:italic;margin-top:1px}
+  .price{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:var(--lacquer);white-space:nowrap}
+  .desc{font-size:12.5px;color:var(--ink-soft);font-weight:300;line-height:1.5;margin-top:6px}
+  .tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:600;letter-spacing:.5px;padding:3px 9px;border-radius:20px}
+  .tag.hot{background:#FCEBE4;color:#C0440E}
+  .tag.signature{background:var(--gold-soft);color:var(--lacquer-deep)}
+  .tag.veg{background:#E6EFE4;color:var(--leaf)}
+  .tag.out{background:#ECECEC;color:#999}
+  .dish.unavailable{opacity:.5}
+  .dish.unavailable .price{text-decoration:line-through;color:var(--ink-soft)}
+
+  /* ---- FOOTER / CTA ---- */
+  footer{padding:40px 28px 28px;text-align:center;background:var(--lacquer-deep);color:var(--rice);margin-top:30px}
+  footer .seal{border-color:rgba(227,202,140,.5)}
+  footer p{font-size:12px;color:rgba(247,242,231,.6);font-weight:300;line-height:1.7}
+  .call{
+    display:inline-flex;align-items:center;gap:8px;margin:18px 0 8px;
+    background:var(--gold);color:var(--lacquer-deep);font-weight:600;font-size:14px;
+    padding:13px 30px;border-radius:40px;text-decoration:none;
+  }
+  .credit{margin-top:22px;font-size:10px;letter-spacing:1px;color:rgba(227,202,140,.45);text-transform:uppercase}
+
+  /* ---- NÚT THÊM MÓN ---- */
+  .add{
+    margin-top:10px;font-family:inherit;font-size:13px;font-weight:600;
+    background:var(--lacquer);color:var(--rice);border:none;
+    padding:8px 18px;border-radius:30px;cursor:pointer;transition:.2s;
+  }
+  .add:active{transform:scale(.94)}
+  .qtybox{display:inline-flex;align-items:center;gap:14px;margin-top:10px}
+  .qtybox button{
+    width:30px;height:30px;border-radius:50%;border:1.5px solid var(--lacquer);
+    background:transparent;color:var(--lacquer);font-size:18px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .qtybox span{font-weight:600;font-size:15px;min-width:18px;text-align:center}
+  .dish.unavailable .add{background:#ccc;pointer-events:none}
+
+  /* ---- THANH GIỎ ---- */
+  .cartbar{
+    position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(120%);
+    width:100%;max-width:520px;background:var(--lacquer-deep);color:var(--rice);
+    padding:16px 22px;display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:40;
+    box-shadow:0 -6px 24px rgba(74,13,24,.35);
+  }
+  .cartbar.show{transform:translateX(-50%) translateY(0)}
+  .cartbar .l{display:flex;align-items:center;gap:12px}
+  .cartbar .badge{
+    background:var(--gold);color:var(--lacquer-deep);font-weight:700;font-size:14px;
+    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .cartbar .total{font-family:'Playfair Display',serif;font-weight:700;font-size:17px}
+  .cartbar .go{font-size:13px;font-weight:600;color:var(--gold-soft)}
+
+  /* ---- MODAL GIỎ ---- */
+  .overlay{position:fixed;inset:0;background:rgba(36,26,22,.55);z-index:50;opacity:0;pointer-events:none;transition:.3s}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(100%);
+    width:100%;max-width:520px;background:var(--rice);z-index:60;
+    border-radius:24px 24px 0 0;padding:24px 22px 30px;transition:transform .35s cubic-bezier(.2,.8,.2,1);
+    max-height:88vh;overflow-y:auto;
+  }
+  .sheet.show{transform:translateX(-50%) translateY(0)}
+  .sheet h3{font-family:'Playfair Display',serif;font-size:22px;color:var(--lacquer);margin-bottom:4px}
+  .sheet .sub{font-size:12px;color:var(--ink-soft);margin-bottom:18px}
+  .crow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rice-deep)}
+  .crow .cn{flex:1;font-size:14px;font-weight:500}
+  .crow .cn small{display:block;color:var(--ink-soft);font-weight:400;font-size:11.5px}
+  .crow .cp{font-weight:600;color:var(--lacquer);font-size:14px;white-space:nowrap}
+  .crow .mini{display:flex;align-items:center;gap:10px}
+  .crow .mini button{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--lacquer);background:transparent;color:var(--lacquer);font-size:15px;font-weight:700;cursor:pointer}
+  .crow .mini span{font-weight:600;min-width:16px;text-align:center}
+  .tablepick{margin:18px 0 8px}
+  .tablepick label{font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:8px}
+  .tablepick input{width:100%;font-family:inherit;font-size:15px;padding:13px 16px;border:1.5px solid var(--rice-deep);border-radius:12px;background:#fff}
+  .tablepick input:focus{outline:none;border-color:var(--gold)}
+  .grand{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0;font-family:'Playfair Display',serif}
+  .grand .lbl{font-size:14px;color:var(--ink-soft)}
+  .grand .amt{font-size:26px;font-weight:700;color:var(--lacquer)}
+  .send{width:100%;font-family:inherit;font-size:16px;font-weight:600;background:var(--gold);color:var(--lacquer-deep);border:none;padding:16px;border-radius:14px;cursor:pointer}
+  .send:disabled{opacity:.45;cursor:not-allowed}
+  .empty{text-align:center;color:var(--ink-soft);padding:30px 0;font-size:14px}
+  .done{text-align:center;padding:20px 0}
+  .done .big{font-size:48px;margin-bottom:10px}
+  .done h3{margin-bottom:8px}
+  .done p{font-size:13px;color:var(--ink-soft);line-height:1.6}
+
+  /* ---- MÀN HÌNH BẾP ---- */
+  .kds-link{position:fixed;top:12px;right:12px;z-index:30;background:rgba(36,26,22,.7);color:var(--rice);font-size:11px;font-weight:600;padding:7px 14px;border-radius:30px;text-decoration:none;backdrop-filter:blur(4px)}
+  #kds{display:none;background:#15110F;min-height:100vh;color:#eee;padding:0}
+  #kds.show{display:block}
+  .kds-bar{background:var(--lacquer);padding:18px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+  .kds-bar h2{font-family:'Playfair Display',serif;color:var(--rice);font-size:20px}
+  .kds-bar a{color:var(--gold-soft);font-size:12px;font-weight:600;text-decoration:none}
+  .kds-grid{padding:18px;display:grid;gap:16px}
+  .ticket{background:#211B18;border-radius:16px;padding:16px 18px;border-left:4px solid var(--gold);animation:pop .3s}
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .ticket.served{border-left-color:var(--leaf);opacity:.5}
+  .ticket-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .ticket-top .tbl{font-size:17px;font-weight:700;color:var(--gold-soft)}
+  .ticket-top .time{font-size:11px;color:#888}
+  .ticket li{list-style:none;display:flex;justify-content:space-between;padding:5px 0;font-size:14px;border-bottom:1px dashed #332b27}
+  .ticket li .q{color:var(--gold);font-weight:700;margin-right:8px}
+  .ticket .servebtn{margin-top:14px;width:100%;background:var(--leaf);color:#fff;border:none;padding:11px;border-radius:10px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer}
+  .ticket.served .servebtn{background:#444}
+  .kds-empty{text-align:center;color:#666;padding:60px 20px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="seal">NV</div>
+    <div class="eyebrow">Ẩm thực truyền thống</div>
+    <h1>Nhà Hàng<em>Việt</em></h1>
+    <p class="tagline">Hương vị quê nhà · Quét mã, chọn món tại bàn</p>
+  </header>
+
+  <nav id="nav"></nav>
+
+  <main id="menu"></main>
+
+  <footer>
+    <div class="seal">NV</div>
+    <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
+    <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
+    <p class="credit">E-Menu by MT One</p>
+  </footer>
+
+  <a class="kds-link" id="toKds" href="#">🍳 Màn hình bếp</a>
+
+  <!-- Thanh giỏ nổi -->
+  <div class="cartbar" id="cartbar">
+    <div class="l"><span class="badge" id="cartCount">0</span><span class="total" id="cartTotal">0đ</span></div>
+    <span class="go">Xem giỏ & gửi bếp →</span>
+  </div>
+
+</div>
+
+<!-- Màn hình BẾP -->
+<div id="kds">
+  <div class="kds-bar"><h2>🍳 Bếp · Nhà Hàng Việt</h2><a href="#" id="toMenu">← Về thực đơn khách</a></div>
+  <div class="kds-grid" id="tickets"></div>
+</div>
+
+<!-- Overlay + Modal giỏ -->
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet"></div>
+
+
+
+<script>
+const menu = [
+  { cat:"Khai vị", vn:"Starters", items:[
+    { name:"Gỏi cuốn tôm thịt", en:"Fresh spring rolls", price:"45.000đ",
+      desc:"Bánh tráng cuốn tôm, thịt ba chỉ, bún và rau thơm, chấm mắm nêm.",
+      img:"https://images.unsplash.com/photo-1559314809-0d155014e29e?w=300&q=70", tags:["signature"] },
+    { name:"Chả giò hải sản", en:"Seafood crispy rolls", price:"55.000đ",
+      desc:"Cuốn giòn nhân tôm mực, cà rốt, mộc nhĩ; ăn kèm rau sống.",
+      img:"https://images.unsplash.com/photo-1625938145312-c98b25b9eba9?w=300&q=70", tags:["hot"] },
+  ]},
+  { cat:"Món chính", vn:"Main dishes", items:[
+    { name:"Phở bò tái nạm", en:"Beef pho", price:"79.000đ",
+      desc:"Nước dùng ninh xương 12 giờ, bánh phở tươi, bò tái và nạm.",
+      img:"https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=300&q=70", tags:["signature","hot"] },
+    { name:"Bún chả Hà Nội", en:"Grilled pork with noodles", price:"69.000đ",
+      desc:"Chả viên và thịt nướng than hoa, nước chấm chua ngọt, bún tươi.",
+      img:"https://images.unsplash.com/photo-1576577445504-6af96477db52?w=300&q=70", tags:["hot"] },
+    { name:"Cơm tấm sườn bì chả", en:"Broken rice platter", price:"75.000đ",
+      desc:"Sườn nướng, bì, chả trứng trên nền cơm tấm, kèm mỡ hành.",
+      img:"https://images.unsplash.com/photo-1603088549155-6ae9395b928f?w=300&q=70", tags:[] },
+    { name:"Cá kho tộ", en:"Caramelised clay-pot fish", price:"89.000đ",
+      desc:"Cá basa kho nước dừa trong tộ đất, đậm đà, ăn cùng cơm trắng.",
+      img:"https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=70", tags:[] },
+    { name:"Đậu hũ sốt cà chua", en:"Tofu in tomato sauce", price:"49.000đ",
+      desc:"Đậu hũ chiên vàng sốt cà chua, hành lá — món chay nhẹ nhàng.",
+      img:"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&q=70", tags:["veg"] },
+  ]},
+  { cat:"Tráng miệng", vn:"Desserts", items:[
+    { name:"Chè ba màu", en:"Three-colour sweet soup", price:"35.000đ",
+      desc:"Đậu đỏ, đậu xanh, thạch và nước cốt dừa béo mát.",
+      img:"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=300&q=70", tags:["veg"] },
+  ]},
+  { cat:"Đồ uống", vn:"Drinks", items:[
+    { name:"Cà phê sữa đá", en:"Vietnamese iced milk coffee", price:"30.000đ",
+      desc:"Cà phê phin đậm pha sữa đặc, đá viên — vị Sài Gòn nguyên bản.",
+      img:"https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&q=70", tags:["signature"] },
+    { name:"Nước mía tắc", en:"Sugarcane & kumquat juice", price:"25.000đ",
+      desc:"Nước mía ép tươi pha tắc, thanh mát giải nhiệt.",
+      img:"https://images.unsplash.com/photo-1497534547324-0ebb3f052e88?w=300&q=70", tags:["out"] },
+  ]},
+];
+
+const nav = document.getElementById('nav');
+const main = document.getElementById('menu');
+
+menu.forEach((c,i)=>{
+  const id = 'cat'+i;
+  const btn = document.createElement('button');
+  btn.textContent = c.cat;
+  btn.className = i===0?'on':'';
+  btn.onclick = ()=>document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});
+  nav.appendChild(btn);
+
+  const sec = document.createElement('section');
+  sec.className='cat'; sec.id=id;
+  sec.innerHTML = `<div class="cat-head"><h2>${c.cat}</h2><span class="vn">${c.vn}</span><span class="rule"></span></div>`;
+  c.items.forEach(d=>{
+    const out = d.tags.includes('out');
+    const tagHtml = d.tags.map(t=>{
+      const m={hot:['hot','Món hot'],signature:['signature','Đặc trưng'],veg:['veg','Món chay'],out:['out','Tạm hết']};
+      return `<span class="tag ${m[t][0]}">${m[t][1]}</span>`;
+    }).join('');
+    sec.innerHTML += `
+      <div class="dish ${out?'unavailable':''}">
+        <img class="thumb" src="${d.img}" alt="${d.name}" loading="lazy">
+        <div class="info">
+          <div class="dish-top">
+            <div class="dish-name">${d.name}<span class="en">${d.en}</span></div>
+            <div class="price">${d.price}</div>
+          </div>
+          <p class="desc">${d.desc}</p>
+          <div class="tags">${tagHtml}</div>
+          ${out?'':`<div data-add="${d.name}" data-price="${parseInt(d.price.replace(/\D/g,''))}"></div>`}
+        </div>
+      </div>`;
+  });
+  main.appendChild(sec);
+});
+
+// highlight nav khi cuộn
+const obs = new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      const idx=[...main.children].indexOf(e.target);
+      [...nav.children].forEach((b,i)=>b.classList.toggle('on',i===idx));
+    }
+  });
+},{rootMargin:'-40% 0px -55% 0px'});
+[...main.children].forEach(s=>obs.observe(s));
+
+/* ===== GIỎ HÀNG ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQW-gW48aob19JaK3xElIU3Gx6llm6kANfCnpQVntzCuR0GtMRlkYOtACf9oy7RoLy/exec';
+const SECRET  = 'NHV2025'; // phải trùng SECRET trong Code.gs
+const cart = {};            // {tenMon: {price, qty}}
+const fmt = n => n.toLocaleString('vi-VN')+'đ';
+const cartbar = document.getElementById('cartbar');
+const sheet = document.getElementById('sheet');
+const overlay = document.getElementById('overlay');
+
+// gắn nút +/- vào từng món
+document.querySelectorAll('[data-add]').forEach(slot=>{
+  const name = slot.dataset.add, price = +slot.dataset.price;
+  const render = ()=>{
+    const q = cart[name]?.qty || 0;
+    slot.innerHTML = q===0
+      ? `<button class="add">+ Chọn món</button>`
+      : `<div class="qtybox"><button data-m>−</button><span>${q}</span><button data-p>+</button></div>`;
+    slot.querySelector('.add')?.addEventListener('click',()=>{cart[name]={price,qty:1};render();sync();});
+    slot.querySelector('[data-p]')?.addEventListener('click',()=>{cart[name].qty++;render();sync();});
+    slot.querySelector('[data-m]')?.addEventListener('click',()=>{cart[name].qty--;if(cart[name].qty<=0)delete cart[name];render();sync();});
+  };
+  slot._render = render; render();
+});
+
+function totals(){
+  let count=0,sum=0;
+  for(const k in cart){count+=cart[k].qty;sum+=cart[k].qty*cart[k].price;}
+  return {count,sum};
+}
+function sync(){
+  const {count,sum}=totals();
+  document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartTotal').textContent=fmt(sum);
+  cartbar.classList.toggle('show',count>0);
+}
+
+/* mở modal giỏ */
+cartbar.onclick=()=>{drawSheet();overlay.classList.add('show');sheet.classList.add('show');};
+overlay.onclick=closeSheet;
+function closeSheet(){overlay.classList.remove('show');sheet.classList.remove('show');}
+
+function drawSheet(){
+  const {count,sum}=totals();
+  if(count===0){sheet.innerHTML=`<p class="empty">Giỏ hàng đang trống</p>`;return;}
+  let rows='';
+  for(const k in cart){
+    rows+=`<div class="crow"><div class="cn">${k}<small>${fmt(cart[k].price)}</small></div>
+      <div class="mini"><button onclick="chg('${k.replace(/'/g,"\\'")}',-1)">−</button><span>${cart[k].qty}</span><button onclick="chg('${k.replace(/'/g,"\\'")}',1)">+</button></div>
+      <div class="cp">${fmt(cart[k].qty*cart[k].price)}</div></div>`;
+  }
+  sheet.innerHTML=`<h3>Giỏ của bạn</h3><p class="sub">Kiểm tra món rồi gửi xuống bếp</p>${rows}
+    <div class="tablepick"><label>Số bàn</label><input id="tableNo" type="number" inputmode="numeric" placeholder="VD: 5" value="${currentTable}"></div>
+    <div class="grand"><span class="lbl">Tổng cộng</span><span class="amt">${fmt(sum)}</span></div>
+    <button class="send" id="sendBtn">Gửi đơn xuống bếp</button>`;
+  document.getElementById('sendBtn').onclick=sendOrder;
+}
+window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
+  document.querySelectorAll('[data-add]').forEach(s=>{if(s.dataset.add===k)s._render();});
+  sync();drawSheet();};
+
+let currentTable = new URLSearchParams(location.search).get('ban')||'';
+
+/* gửi đơn lên Google Sheet qua Apps Script (no-cors để tránh chặn CORS) */
+function sendOrder(){
+  const tbl=document.getElementById('tableNo').value.trim();
+  if(!tbl){document.getElementById('tableNo').focus();return;}
+  const {sum}=totals();
+  const payload={secret:SECRET,table:tbl,total:sum,
+    items:Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty}))};
+  const btn=document.getElementById('sendBtn');
+  btn.disabled=true; btn.textContent='Đang gửi...';
+  fetch(API_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(payload)
+  }).then(()=>{
+    for(const k in cart)delete cart[k];
+    document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
+    sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
+      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p></div>`;
+    setTimeout(closeSheet,2200);
+  }).catch(()=>{btn.disabled=false;btn.textContent='Lỗi mạng, thử lại';});
+}
+
+/* ===== MÀN HÌNH BẾP (chống chớp) ===== */
+const kds=document.getElementById('kds'), wrap=document.querySelector('.wrap');
+document.getElementById('toKds').onclick=e=>{e.preventDefault();wrap.style.display='none';kds.classList.add('show');lastSig='';fetchKDS();};
+document.getElementById('toMenu').onclick=e=>{e.preventDefault();kds.classList.remove('show');wrap.style.display='';};
+
+let lastSig=''; // chữ ký dữ liệu để biết có đổi không
+
+let kdsCache=[];
+function getOrders(){ return kdsCache; }   // renderKDS đọc từ cache
+
+function fetchKDS(){
+  fetch(API_URL+'?secret='+encodeURIComponent(SECRET))
+    .then(r=>r.json()).then(res=>{
+      if(res.ok){ kdsCache=res.orders||[]; renderKDS(); }
+    }).catch(()=>{});
+}
+
+function buildTicket(o){
+  const t=document.createElement('div');
+  t.className='ticket'+(o.served?' served':'');
+  t.dataset.id=o.id;
+  t.innerHTML=`<div class="ticket-top"><span class="tbl">🪑 Bàn ${o.table}</span><span class="time">${o.time}</span></div>
+    <ul>${o.items.map(i=>`<li><span><span class="q">${i.qty}×</span>${i.name}</span></li>`).join('')}</ul>
+    <button class="servebtn" onclick="serve(${o.id})">${o.served?'✓ Đã phục vụ':'Đánh dấu đã xong'}</button>`;
+  return t;
+}
+
+function renderKDS(){
+  const box=document.getElementById('tickets');
+  const all=getOrders();
+  const sig=JSON.stringify(all.map(o=>[o.id,o.served]));
+  if(sig===lastSig) return;          // KHÔNG đổi -> không đụng DOM -> không chớp
+  lastSig=sig;
+
+  if(!all.length){
+    if(!box.querySelector('.kds-empty'))
+      box.innerHTML=`<div class="kds-empty">Chưa có đơn nào.<br>Mở thực đơn, chọn món và gửi thử nhé.</div>`;
+    return;
+  }
+  const empty=box.querySelector('.kds-empty'); if(empty)empty.remove();
+
+  const have={}; box.querySelectorAll('.ticket').forEach(t=>have[t.dataset.id]=t);
+  const wantIds=all.map(o=>String(o.id));
+
+  // xoá phiếu không còn
+  Object.keys(have).forEach(id=>{if(!wantIds.includes(id))have[id].remove();});
+
+  // thêm mới / cập nhật trạng thái, giữ nguyên thứ tự
+  let prev=null;
+  all.forEach(o=>{
+    let t=have[o.id];
+    if(!t){                                   // phiếu MỚI -> chỉ thêm cái này
+      t=buildTicket(o);
+      prev?prev.after(t):box.prepend(t);
+    }else{                                     // đã có -> chỉ sửa nếu đổi trạng thái
+      const served=t.classList.contains('served');
+      if(served!==!!o.served){
+        t.classList.toggle('served',!!o.served);
+        t.querySelector('.servebtn').textContent=o.served?'✓ Đã phục vụ':'Đánh dấu đã xong';
+      }
+    }
+    prev=t;
+  });
+}
+
+function pollKDS(force){if(force)lastSig='';fetchKDS();}
+
+window.serve=id=>{
+  fetch(API_URL,{
+    method:'POST',
+    mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({secret:SECRET,action:'serve',id:id})
+  }).then(()=>setTimeout(fetchKDS,600)).catch(()=>{});
+};
+
+// poll mỗi 3s, renderKDS chỉ vẽ lại khi dữ liệu thật sự đổi -> không chớp
+setInterval(()=>{if(kds.classList.contains('show'))fetchKDS();},3000);
+</script>
+</body>
+</html>
