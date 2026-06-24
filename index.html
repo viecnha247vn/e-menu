@@ -234,10 +234,8 @@
     <div class="seal">NV</div>
     <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
     <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
-    <p class="credit">E-Menu by MT One · v7 · đơn của tôi</p>
+    <p class="credit">E-Menu by MT One · v8 · gửi ổn định</p>
   </footer>
-
-  <a class="kds-link" id="toKds" href="#">🍳 Màn hình bếp</a>
 
   <!-- Thanh giỏ nổi -->
   <div class="cartbar" id="cartbar">
@@ -245,12 +243,6 @@
     <span class="go">Xem giỏ & gửi bếp →</span>
   </div>
 
-</div>
-
-<!-- Màn hình BẾP -->
-<div id="kds">
-  <div class="kds-bar"><h2>🍳 Bếp · Nhà Hàng Việt</h2><a href="#" id="toMenu">← Về thực đơn khách</a></div>
-  <div class="kds-grid" id="tickets"></div>
 </div>
 
 <!-- Overlay + Modal giỏ -->
@@ -426,7 +418,7 @@ function jsonp(extra, onOk){
   setTimeout(()=>finish(null),20000); // phòng treo
 }
 
-/* gửi đơn lên Sheet — ghi luôn ổn định nên không chờ xác nhận, báo thành công sau khi gửi */
+/* gửi đơn lên Sheet, có xác nhận từ server + tự thử lại nếu mạng chập chờn */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
@@ -436,17 +428,31 @@ function sendOrder(){
     items:items.map(({name,qty})=>({name,qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  jsonp('do=order&data='+data);   // gửi, không cần chờ phản hồi
-  // lưu lại đơn này vào lịch sử của khách
-  myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
-  setTimeout(()=>{
+
+  let tries=0;
+  function attempt(){
+    tries++;
+    jsonp('do=order&data='+data, res=>{
+      if(res&&res.ok){            // server xác nhận đã ghi
+        onSuccess();
+      }else if(tries<3){          // trượt -> thử lại
+        btn.textContent='Đang gửi lại... ('+tries+')';
+        setTimeout(attempt,1200);
+      }else{
+        btn.disabled=false; btn.textContent='Mạng yếu, bấm gửi lại';
+      }
+    });
+  }
+  function onSuccess(){
+    myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
     for(const k in cart)delete cart[k];
     document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
     sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
       <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
       <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
     updateMyBtn();
-  },1400);
+  }
+  attempt();
 }
 
 /* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
@@ -483,77 +489,7 @@ function showMyOrders(){
   overlay.classList.add('show');sheet.classList.add('show');
 }
 
-/* ===== MÀN HÌNH BẾP (chống chớp) ===== */
-const kds=document.getElementById('kds'), wrap=document.querySelector('.wrap');
-document.getElementById('toKds').onclick=e=>{e.preventDefault();window.open(API_URL+'?page=kds','_blank');};
-document.getElementById('toMenu').onclick=e=>{e.preventDefault();kds.classList.remove('show');wrap.style.display='';};
-
-let lastSig=''; // chữ ký dữ liệu để biết có đổi không
-
-let kdsCache=[];
-function getOrders(){ return kdsCache; }   // renderKDS đọc từ cache
-
-/* Đọc đơn bằng cùng kỹ thuật script-tag */
-function fetchKDS(){
-  jsonp('', res=>{ if(res&&res.ok){ kdsCache=res.orders||[]; renderKDS(); } });
-}
-
-function buildTicket(o){
-  const t=document.createElement('div');
-  t.className='ticket'+(o.served?' served':'');
-  t.dataset.id=o.id;
-  t.innerHTML=`<div class="ticket-top"><span class="tbl">🪑 Bàn ${o.table}</span><span class="time">${o.time}</span></div>
-    <ul>${o.items.map(i=>`<li><span><span class="q">${i.qty}×</span>${i.name}</span></li>`).join('')}</ul>
-    <button class="servebtn" onclick="serve(${o.id})">${o.served?'✓ Đã phục vụ':'Đánh dấu đã xong'}</button>`;
-  return t;
-}
-
-function renderKDS(){
-  const box=document.getElementById('tickets');
-  const all=getOrders();
-  const sig=JSON.stringify(all.map(o=>[o.id,o.served]));
-  if(sig===lastSig) return;          // KHÔNG đổi -> không đụng DOM -> không chớp
-  lastSig=sig;
-
-  if(!all.length){
-    if(!box.querySelector('.kds-empty'))
-      box.innerHTML=`<div class="kds-empty">Chưa có đơn nào.<br>Mở thực đơn, chọn món và gửi thử nhé.</div>`;
-    return;
-  }
-  const empty=box.querySelector('.kds-empty'); if(empty)empty.remove();
-
-  const have={}; box.querySelectorAll('.ticket').forEach(t=>have[t.dataset.id]=t);
-  const wantIds=all.map(o=>String(o.id));
-
-  // xoá phiếu không còn
-  Object.keys(have).forEach(id=>{if(!wantIds.includes(id))have[id].remove();});
-
-  // thêm mới / cập nhật trạng thái, giữ nguyên thứ tự
-  let prev=null;
-  all.forEach(o=>{
-    let t=have[o.id];
-    if(!t){                                   // phiếu MỚI -> chỉ thêm cái này
-      t=buildTicket(o);
-      prev?prev.after(t):box.prepend(t);
-    }else{                                     // đã có -> chỉ sửa nếu đổi trạng thái
-      const served=t.classList.contains('served');
-      if(served!==!!o.served){
-        t.classList.toggle('served',!!o.served);
-        t.querySelector('.servebtn').textContent=o.served?'✓ Đã phục vụ':'Đánh dấu đã xong';
-      }
-    }
-    prev=t;
-  });
-}
-
-function pollKDS(force){if(force)lastSig='';fetchKDS();}
-
-window.serve=id=>{
-  jsonp('do=serve&id='+id, ()=>setTimeout(fetchKDS,500));
-};
-
-// poll mỗi 3s, renderKDS chỉ vẽ lại khi dữ liệu thật sự đổi -> không chớp
-setInterval(()=>{if(kds.classList.contains('show'))fetchKDS();},3000);
+const wrap=document.querySelector('.wrap');
 </script>
 </body>
 </html>
