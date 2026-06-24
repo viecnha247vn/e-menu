@@ -406,27 +406,23 @@ window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
 
 let currentTable = new URLSearchParams(location.search).get('ban')||'';
 
-/* gửi đơn lên Google Sheet qua Apps Script (no-cors để tránh chặn CORS) */
+/* gửi đơn lên Sheet qua query string (tránh CORS, không mất body khi redirect) */
 function sendOrder(){
   const tbl=document.getElementById('tableNo').value.trim();
   if(!tbl){document.getElementById('tableNo').focus();return;}
   const {sum}=totals();
-  const payload={secret:SECRET,table:tbl,total:sum,
-    items:Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty}))};
+  const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,
+    items:Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty}))}));
   const btn=document.getElementById('sendBtn');
   btn.disabled=true; btn.textContent='Đang gửi...';
-  fetch(API_URL,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify(payload)
-  }).then(()=>{
-    for(const k in cart)delete cart[k];
-    document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
-    sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
-      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p></div>`;
-    setTimeout(closeSheet,2200);
-  }).catch(()=>{btn.disabled=false;btn.textContent='Lỗi mạng, thử lại';});
+  fetch(API_URL+'?do=order&data='+data,{mode:'no-cors'})
+    .then(()=>{
+      for(const k in cart)delete cart[k];
+      document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
+      sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
+        <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p></div>`;
+      setTimeout(closeSheet,2200);
+    }).catch(()=>{btn.disabled=false;btn.textContent='Lỗi mạng, thử lại';});
 }
 
 /* ===== MÀN HÌNH BẾP (chống chớp) ===== */
@@ -439,11 +435,17 @@ let lastSig=''; // chữ ký dữ liệu để biết có đổi không
 let kdsCache=[];
 function getOrders(){ return kdsCache; }   // renderKDS đọc từ cache
 
+/* Đọc đơn bằng JSONP — cách duy nhất đọc Apps Script từ web khác tên miền */
 function fetchKDS(){
-  fetch(API_URL+'?secret='+encodeURIComponent(SECRET))
-    .then(r=>r.json()).then(res=>{
-      if(res.ok){ kdsCache=res.orders||[]; renderKDS(); }
-    }).catch(()=>{});
+  const cb='__kds_'+Date.now();
+  const s=document.createElement('script');
+  window[cb]=res=>{
+    if(res&&res.ok){ kdsCache=res.orders||[]; renderKDS(); }
+    delete window[cb]; s.remove();
+  };
+  s.onerror=()=>{ delete window[cb]; s.remove(); };
+  s.src=API_URL+'?callback='+cb+'&t='+Date.now();
+  document.body.appendChild(s);
 }
 
 function buildTicket(o){
@@ -497,12 +499,8 @@ function renderKDS(){
 function pollKDS(force){if(force)lastSig='';fetchKDS();}
 
 window.serve=id=>{
-  fetch(API_URL,{
-    method:'POST',
-    mode:'no-cors',
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body:JSON.stringify({secret:SECRET,action:'serve',id:id})
-  }).then(()=>setTimeout(fetchKDS,600)).catch(()=>{});
+  fetch(API_URL+'?do=serve&id='+id,{mode:'no-cors'})
+    .then(()=>setTimeout(fetchKDS,600)).catch(()=>{});
 };
 
 // poll mỗi 3s, renderKDS chỉ vẽ lại khi dữ liệu thật sự đổi -> không chớp
