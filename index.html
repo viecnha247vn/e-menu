@@ -1,183 +1,530 @@
-/****************************************************
- *  E-MENU NHÀ HÀNG VIỆT — Backend Google Apps Script
- *  - Khách gửi đơn:  ?do=order&data=...   (từ web Vercel)
- *  - Màn hình BẾP:   ?page=kds            (Google tự phục vụ, real-time, không CORS)
- *  Tác giả: MT One
- ****************************************************/
-
-const SHEET_NAME = 'DonHang';
-
-// ====== TELEGRAM: dán 2 giá trị này theo hướng dẫn ======
-const TELEGRAM_TOKEN   = '8746251520:AAGN3mg5ziy5LJ_RC1qNnKu3q8qa-Gb8zQM';   // token bot từ @BotFather
-const TELEGRAM_CHAT_ID = '6821596723';   // id người/nhóm nhận
-
-function notifyTelegram_(table, items, total, lan) {
-  if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) return;
-  var dong = (items || []).map(function (it) {
-    return '• ' + it.qty + '×  ' + it.name;
-  }).join('\n');
-  var gio = Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
-  var laThem = lan && lan > 1;
-  var tieuDe = laThem ? ('➕ <b>GỌI THÊM</b> (lần ' + lan + ')') : '🔔 <b>ĐƠN MỚI</b>';
-  var msg =
-    tieuDe + '\n' +
-    '━━━━━━━━━━━━━\n' +
-    '🪑 <b>Bàn ' + table + '</b>   ·   🕐 ' + gio + '\n\n' +
-    dong + '\n\n' +
-    '💰 <b>Tổng đơn này: ' + Number(total).toLocaleString('vi-VN') + 'đ</b>';
-  try {
-    UrlFetchApp.fetch('https://api.telegram.org/bot' + TELEGRAM_TOKEN + '/sendMessage', {
-      method: 'post',
-      payload: { chat_id: TELEGRAM_CHAT_ID, text: msg, parse_mode: 'HTML' },
-      muteHttpExceptions: true
-    });
-  } catch (e) {}
-}
-
-// >>> CHẠY HÀM NÀY MỘT LẦN trong trình soạn để xin quyền & test Telegram <<<
-function testTele() {
-  notifyTelegram_('5', [{ qty: 2, name: 'Phở bò tái nạm' }, { qty: 1, name: 'Cà phê sữa đá' }], 188000, 1);
-  Logger.log('Đã gửi tin test, kiểm tra Telegram.');
-}
-
-function getSheet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(SHEET_NAME);
-  if (!sh) {
-    sh = ss.insertSheet(SHEET_NAME);
-    sh.appendRow(['ID', 'ThoiGian', 'Ban', 'ChiTietMon', 'TongTien', 'TrangThai']);
-    sh.getRange('A1:F1').setFontWeight('bold');
-    sh.setFrozenRows(1);
-  }
-  return sh;
-}
-
-function doGet(e) {
-  e = e || {};
-  const p = e.parameter || {};
-  try {
-    // === TRANG MÀN HÌNH BẾP (Google tự phục vụ) ===
-    if (p.page === 'kds') {
-      return HtmlService.createHtmlOutput(KDS_HTML())
-        .setTitle('Bếp · Nhà Hàng Việt')
-        .addMetaTag('viewport', 'width=device-width, initial-scale=1');
-    }
-
-    const sh = getSheet_();
-
-    // === KHÁCH GỬI ĐƠN ===
-    if (p.do === 'order') {
-      const body = JSON.parse(p.data || '{}');
-      const id = Date.now();
-      const time = Utilities.formatDate(new Date(), 'GMT+7', 'HH:mm');
-      const chiTiet = (body.items || []).map(it => it.qty + '× ' + it.name).join(', ');
-      sh.appendRow([id, time, body.table, chiTiet, body.total || '', 'MOI']);
-      notifyTelegram_(body.table, body.items || [], body.total || 0, body.lan || 1);
-      return out_(p, { ok: true, id: id });
-    }
-
-    // mặc định trả danh sách đơn (JSON / JSONP)
-    return out_(p, { ok: true, orders: getOrdersData() });
-
-  } catch (err) {
-    return out_(p, { ok: false, error: String(err) });
-  }
-}
-
-function doPost(e) { return doGet(e); }
-
-// ===== Hàm cho màn bếp gọi trực tiếp (google.script.run) — KHÔNG qua mạng ngoài =====
-function getOrdersData() {
-  const sh = getSheet_();
-  const data = sh.getDataRange().getValues();
-  const orders = [];
-  for (let i = 1; i < data.length; i++) {
-    const [id, time, table, chiTiet, total, status] = data[i];
-    if (!id) continue;
-    orders.push({
-      id: id, time: time, table: table,
-      items: String(chiTiet).split(', ').filter(Boolean).map(s => {
-        const m = s.match(/^(\d+)×\s*(.+)$/);
-        return m ? { qty: +m[1], name: m[2] } : { qty: 1, name: s };
-      }),
-      served: status === 'XONG'
-    });
-  }
-  return orders.reverse();
-}
-
-function setServed(id) {
-  const sh = getSheet_();
-  const data = sh.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]) === String(id)) {
-      sh.getRange(i + 1, 6).setValue(data[i][5] === 'XONG' ? 'MOI' : 'XONG');
-      break;
-    }
-  }
-  return true;
-}
-
-function out_(p, obj) {
-  const txt = JSON.stringify(obj);
-  if (p && p.callback) {
-    return ContentService.createTextOutput(p.callback + '(' + txt + ')')
-      .setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return ContentService.createTextOutput(txt)
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-// ===== HTML màn hình bếp (đọc đơn real-time, chống chớp) =====
-function KDS_HTML() {
-  return `<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8">
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nhà Hàng Việt · Thực đơn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
-  body{background:#15110F;color:#eee}
-  .bar{background:#6E1423;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0}
-  .bar h2{font-size:19px;color:#F7F2E7}
-  .bar .st{font-size:12px;color:#E3CA8C}
-  .grid{padding:16px;display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
-  .ticket{background:#211B18;border-radius:14px;padding:15px 17px;border-left:4px solid #C9A24B;animation:pop .3s}
-  @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .ticket.served{border-left-color:#3D5A3C;opacity:.5}
-  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .tbl{font-size:17px;font-weight:700;color:#E3CA8C}
-  .time{font-size:12px;color:#888}
-  ul{list-style:none}
-  li{display:flex;padding:5px 0;font-size:15px;border-bottom:1px dashed #332b27}
-  .q{color:#C9A24B;font-weight:700;margin-right:8px}
-  .btn{margin-top:12px;width:100%;background:#3D5A3C;color:#fff;border:none;padding:11px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer}
-  .ticket.served .btn{background:#444}
-  .empty{text-align:center;color:#666;padding:60px 20px}
-</style></head><body>
-<div class="bar"><h2>🍳 Bếp · Nhà Hàng Việt</h2><span class="st" id="st">Đang kết nối…</span></div>
-<div class="grid" id="grid"></div>
+  :root{
+    --lacquer:#6E1423;      /* sơn mài đỏ */
+    --lacquer-deep:#4A0D18;
+    --gold:#C9A24B;          /* hoàng kim */
+    --gold-soft:#E3CA8C;
+    --rice:#F7F2E7;          /* nền gạo */
+    --rice-deep:#EFE7D4;
+    --ink:#241A16;
+    --ink-soft:#5C5048;
+    --leaf:#3D5A3C;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Be Vietnam Pro',sans-serif;
+    background:var(--rice);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:520px;margin:0 auto;background:var(--rice);min-height:100vh;position:relative}
+
+  /* ---- HERO ---- */
+  header{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(201,162,75,.18), transparent 55%),
+      linear-gradient(160deg,var(--lacquer) 0%,var(--lacquer-deep) 100%);
+    color:var(--rice);
+    padding:44px 28px 56px;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:34px;
+    background:var(--rice);
+    -webkit-mask:radial-gradient(22px at 22px 34px,transparent 98%,#000) repeat-x;
+    mask:radial-gradient(22px at 22px 34px,transparent 98%,#000) repeat-x;
+    -webkit-mask-size:44px 34px;mask-size:44px 34px;
+  }
+  .seal{
+    width:54px;height:54px;border:1.5px solid var(--gold-soft);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+    font-family:'Playfair Display',serif;font-size:24px;color:var(--gold-soft);
+    letter-spacing:-1px;
+  }
+  .eyebrow{
+    font-size:11px;letter-spacing:4px;text-transform:uppercase;
+    color:var(--gold-soft);margin-bottom:10px;font-weight:500;
+  }
+  header h1{
+    font-family:'Playfair Display',serif;font-weight:700;
+    font-size:40px;line-height:1.05;letter-spacing:-.5px;
+  }
+  header h1 em{display:block;font-style:italic;font-weight:500;color:var(--gold-soft);font-size:30px;margin-top:2px}
+  .tagline{font-size:13px;color:rgba(247,242,231,.78);margin-top:14px;font-weight:300}
+
+  /* ---- NAV danh mục ---- */
+  nav{
+    position:sticky;top:0;z-index:20;background:var(--rice);
+    border-bottom:1px solid var(--rice-deep);
+    display:flex;gap:8px;padding:14px 20px;overflow-x:auto;
+    scrollbar-width:none;
+  }
+  nav::-webkit-scrollbar{display:none}
+  nav button{
+    flex:0 0 auto;font-family:inherit;font-size:13px;font-weight:500;
+    border:1px solid var(--rice-deep);background:transparent;color:var(--ink-soft);
+    padding:8px 16px;border-radius:40px;cursor:pointer;transition:.25s;white-space:nowrap;
+  }
+  nav button.on{background:var(--lacquer);color:var(--rice);border-color:var(--lacquer)}
+
+  /* ---- DANH MỤC ---- */
+  .cat{padding:30px 20px 6px}
+  .cat-head{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
+  .cat-head h2{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:var(--lacquer)}
+  .cat-head .vn{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600}
+  .cat-head .rule{flex:1;height:1px;background:var(--rice-deep)}
+
+  /* ---- MÓN ---- */
+  .dish{
+    display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--rice-deep);
+    align-items:flex-start;
+  }
+  .dish:last-child{border-bottom:none}
+  .thumb{
+    width:84px;height:84px;flex:0 0 84px;border-radius:14px;object-fit:cover;
+    background:var(--rice-deep);box-shadow:0 4px 14px rgba(110,20,35,.12);
+  }
+  .info{flex:1;min-width:0}
+  .dish-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+  .dish-name{font-size:16px;font-weight:600;line-height:1.25}
+  .dish-name .en{display:block;font-size:11px;font-weight:300;color:var(--ink-soft);font-style:italic;margin-top:1px}
+  .price{font-family:'Playfair Display',serif;font-weight:700;font-size:15px;color:var(--lacquer);white-space:nowrap}
+  .desc{font-size:12.5px;color:var(--ink-soft);font-weight:300;line-height:1.5;margin-top:6px}
+  .tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .tag{font-size:10px;font-weight:600;letter-spacing:.5px;padding:3px 9px;border-radius:20px}
+  .tag.hot{background:#FCEBE4;color:#C0440E}
+  .tag.signature{background:var(--gold-soft);color:var(--lacquer-deep)}
+  .tag.veg{background:#E6EFE4;color:var(--leaf)}
+  .tag.out{background:#ECECEC;color:#999}
+  .dish.unavailable{opacity:.5}
+  .dish.unavailable .price{text-decoration:line-through;color:var(--ink-soft)}
+
+  /* ---- FOOTER / CTA ---- */
+  footer{padding:40px 28px 28px;text-align:center;background:var(--lacquer-deep);color:var(--rice);margin-top:30px}
+  footer .seal{border-color:rgba(227,202,140,.5)}
+  footer p{font-size:12px;color:rgba(247,242,231,.6);font-weight:300;line-height:1.7}
+  .call{
+    display:inline-flex;align-items:center;gap:8px;margin:18px 0 8px;
+    background:var(--gold);color:var(--lacquer-deep);font-weight:600;font-size:14px;
+    padding:13px 30px;border-radius:40px;text-decoration:none;
+  }
+  .credit{margin-top:22px;font-size:10px;letter-spacing:1px;color:rgba(227,202,140,.45);text-transform:uppercase}
+  .mybtn{position:fixed;left:50%;transform:translateX(-50%);bottom:78px;z-index:39;
+    background:var(--gold);color:var(--lacquer-deep);border:none;font-family:inherit;
+    font-size:13px;font-weight:600;padding:10px 20px;border-radius:30px;cursor:pointer;
+    box-shadow:0 4px 16px rgba(110,20,35,.25);display:flex;align-items:center;gap:8px}
+  .mybtn span{background:var(--lacquer);color:var(--rice);border-radius:20px;padding:1px 8px;font-size:12px}
+  .tablebar{position:sticky;top:51px;z-index:18;background:var(--leaf);color:#fff;
+    display:flex;align-items:center;justify-content:space-between;padding:9px 20px;font-size:13.5px}
+  .tablebar b{color:#fff;font-size:15px}
+  .tablebar button{background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.4);
+    font-family:inherit;font-size:12px;font-weight:600;padding:5px 13px;border-radius:20px;cursor:pointer}
+
+  /* ---- NÚT THÊM MÓN ---- */
+  .add{
+    margin-top:10px;font-family:inherit;font-size:13px;font-weight:600;
+    background:var(--lacquer);color:var(--rice);border:none;
+    padding:8px 18px;border-radius:30px;cursor:pointer;transition:.2s;
+  }
+  .add:active{transform:scale(.94)}
+  .qtybox{display:inline-flex;align-items:center;gap:14px;margin-top:10px}
+  .qtybox button{
+    width:30px;height:30px;border-radius:50%;border:1.5px solid var(--lacquer);
+    background:transparent;color:var(--lacquer);font-size:18px;font-weight:600;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .qtybox span{font-weight:600;font-size:15px;min-width:18px;text-align:center}
+  .dish.unavailable .add{background:#ccc;pointer-events:none}
+
+  /* ---- THANH GIỎ ---- */
+  .cartbar{
+    position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(120%);
+    width:100%;max-width:520px;background:var(--lacquer-deep);color:var(--rice);
+    padding:16px 22px;display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer;transition:transform .35s cubic-bezier(.2,.8,.2,1);z-index:40;
+    box-shadow:0 -6px 24px rgba(74,13,24,.35);
+  }
+  .cartbar.show{transform:translateX(-50%) translateY(0)}
+  .cartbar .l{display:flex;align-items:center;gap:12px}
+  .cartbar .badge{
+    background:var(--gold);color:var(--lacquer-deep);font-weight:700;font-size:14px;
+    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  }
+  .cartbar .total{font-family:'Playfair Display',serif;font-weight:700;font-size:17px}
+  .cartbar .go{font-size:13px;font-weight:600;color:var(--gold-soft)}
+
+  /* ---- MODAL GIỎ ---- */
+  .overlay{position:fixed;inset:0;background:rgba(36,26,22,.55);z-index:50;opacity:0;pointer-events:none;transition:.3s}
+  .overlay.show{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;left:50%;bottom:0;transform:translateX(-50%) translateY(100%);
+    width:100%;max-width:520px;background:var(--rice);z-index:60;
+    border-radius:24px 24px 0 0;padding:24px 22px 30px;transition:transform .35s cubic-bezier(.2,.8,.2,1);
+    max-height:88vh;overflow-y:auto;
+  }
+  .sheet.show{transform:translateX(-50%) translateY(0)}
+  .sheet h3{font-family:'Playfair Display',serif;font-size:22px;color:var(--lacquer);margin-bottom:4px}
+  .sheet .sub{font-size:12px;color:var(--ink-soft);margin-bottom:18px}
+  .crow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--rice-deep)}
+  .crow .cn{flex:1;font-size:14px;font-weight:500}
+  .crow .cn small{display:block;color:var(--ink-soft);font-weight:400;font-size:11.5px}
+  .crow .cp{font-weight:600;color:var(--lacquer);font-size:14px;white-space:nowrap}
+  .crow .mini{display:flex;align-items:center;gap:10px}
+  .crow .mini button{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--lacquer);background:transparent;color:var(--lacquer);font-size:15px;font-weight:700;cursor:pointer}
+  .crow .mini span{font-weight:600;min-width:16px;text-align:center}
+  .tablepick{margin:18px 0 8px}
+  .tablepick label{font-size:12px;font-weight:600;color:var(--ink-soft);display:block;margin-bottom:8px}
+  .tablepick input{width:100%;font-family:inherit;font-size:15px;padding:13px 16px;border:1.5px solid var(--rice-deep);border-radius:12px;background:#fff}
+  .tablepick input:focus{outline:none;border-color:var(--gold)}
+  .grand{display:flex;justify-content:space-between;align-items:baseline;margin:18px 0;font-family:'Playfair Display',serif}
+  .grand .lbl{font-size:14px;color:var(--ink-soft)}
+  .grand .amt{font-size:26px;font-weight:700;color:var(--lacquer)}
+  .send{width:100%;font-family:inherit;font-size:16px;font-weight:600;background:var(--gold);color:var(--lacquer-deep);border:none;padding:16px;border-radius:14px;cursor:pointer}
+  .send:disabled{opacity:.45;cursor:not-allowed}
+  .empty{text-align:center;color:var(--ink-soft);padding:30px 0;font-size:14px}
+  .done{text-align:center;padding:20px 0}
+  .done .big{font-size:48px;margin-bottom:10px}
+  .done h3{margin-bottom:8px}
+  .done p{font-size:13px;color:var(--ink-soft);line-height:1.6}
+
+  /* ---- MÀN HÌNH BẾP ---- */
+  .kds-link{position:fixed;top:12px;right:12px;z-index:30;background:rgba(36,26,22,.7);color:var(--rice);font-size:11px;font-weight:600;padding:7px 14px;border-radius:30px;text-decoration:none;backdrop-filter:blur(4px)}
+  #kds{display:none;background:#15110F;min-height:100vh;color:#eee;padding:0}
+  #kds.show{display:block}
+  .kds-bar{background:var(--lacquer);padding:18px 22px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+  .kds-bar h2{font-family:'Playfair Display',serif;color:var(--rice);font-size:20px}
+  .kds-bar a{color:var(--gold-soft);font-size:12px;font-weight:600;text-decoration:none}
+  .kds-grid{padding:18px;display:grid;gap:16px}
+  .ticket{background:#211B18;border-radius:16px;padding:16px 18px;border-left:4px solid var(--gold);animation:pop .3s}
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .ticket.served{border-left-color:var(--leaf);opacity:.5}
+  .ticket-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .ticket-top .tbl{font-size:17px;font-weight:700;color:var(--gold-soft)}
+  .ticket-top .time{font-size:11px;color:#888}
+  .ticket li{list-style:none;display:flex;justify-content:space-between;padding:5px 0;font-size:14px;border-bottom:1px dashed #332b27}
+  .ticket li .q{color:var(--gold);font-weight:700;margin-right:8px}
+  .ticket .servebtn{margin-top:14px;width:100%;background:var(--leaf);color:#fff;border:none;padding:11px;border-radius:10px;font-family:inherit;font-weight:600;font-size:13px;cursor:pointer}
+  .ticket.served .servebtn{background:#444}
+  .kds-empty{text-align:center;color:#666;padding:60px 20px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="seal">NV</div>
+    <div class="eyebrow">Ẩm thực truyền thống</div>
+    <h1>Nhà Hàng<em>Việt</em></h1>
+    <p class="tagline">Hương vị quê nhà · Quét mã, chọn món tại bàn</p>
+  </header>
+
+  <nav id="nav"></nav>
+
+  <div id="tableBar" class="tablebar" style="display:none">
+    <span>🪑 Bạn đang ở <b id="tableBarNum"></b></span>
+    <button onclick="changeTable()">Đổi bàn</button>
+  </div>
+
+  <main id="menu"></main>
+
+  <footer>
+    <div class="seal">NV</div>
+    <a class="call" href="tel:+84900000000">📞 Gọi phục vụ</a>
+    <p>Mở cửa 10:00 – 22:00 hằng ngày<br>Giá đã bao gồm VAT</p>
+    <p class="credit">E-Menu by MT One · v9 · gọi thêm</p>
+  </footer>
+
+  <!-- Thanh giỏ nổi -->
+  <div class="cartbar" id="cartbar">
+    <div class="l"><span class="badge" id="cartCount">0</span><span class="total" id="cartTotal">0đ</span></div>
+    <span class="go">Xem giỏ & gửi bếp →</span>
+  </div>
+
+</div>
+
+<!-- Overlay + Modal giỏ -->
+<div class="overlay" id="overlay"></div>
+<div class="sheet" id="sheet"></div>
+
+
+
 <script>
-  var last='';
-  function fmtList(o){return o.items.map(function(i){return '<li><span class="q">'+i.qty+'×</span>'+i.name+'</li>';}).join('');}
-  function render(orders){
-    document.getElementById('st').textContent='Cập nhật '+new Date().toLocaleTimeString('vi-VN');
-    var sig=JSON.stringify(orders.map(function(o){return [o.id,o.served];}));
-    if(sig===last)return; last=sig;          // không đổi -> không vẽ lại -> không chớp
-    var g=document.getElementById('grid');
-    if(!orders.length){g.innerHTML='<div class="empty">Chưa có đơn nào</div>';return;}
-    g.innerHTML=orders.map(function(o){
-      return '<div class="ticket'+(o.served?' served':'')+'">'
-        +'<div class="top"><span class="tbl">🪑 Bàn '+o.table+'</span><span class="time">'+o.time+'</span></div>'
-        +'<ul>'+fmtList(o)+'</ul>'
-        +'<button class="btn" onclick="serve('+o.id+')">'+(o.served?'✓ Đã phục vụ':'Đánh dấu đã xong')+'</button></div>';
+const menu = [
+  { cat:"Khai vị", vn:"Starters", items:[
+    { name:"Gỏi cuốn tôm thịt", en:"Fresh spring rolls", price:"45.000đ",
+      desc:"Bánh tráng cuốn tôm, thịt ba chỉ, bún và rau thơm, chấm mắm nêm.",
+      img:"https://images.unsplash.com/photo-1559314809-0d155014e29e?w=300&q=70", tags:["signature"] },
+    { name:"Chả giò hải sản", en:"Seafood crispy rolls", price:"55.000đ",
+      desc:"Cuốn giòn nhân tôm mực, cà rốt, mộc nhĩ; ăn kèm rau sống.",
+      img:"https://images.unsplash.com/photo-1625938145312-c98b25b9eba9?w=300&q=70", tags:["hot"] },
+  ]},
+  { cat:"Món chính", vn:"Main dishes", items:[
+    { name:"Phở bò tái nạm", en:"Beef pho", price:"79.000đ",
+      desc:"Nước dùng ninh xương 12 giờ, bánh phở tươi, bò tái và nạm.",
+      img:"https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=300&q=70", tags:["signature","hot"] },
+    { name:"Bún chả Hà Nội", en:"Grilled pork with noodles", price:"69.000đ",
+      desc:"Chả viên và thịt nướng than hoa, nước chấm chua ngọt, bún tươi.",
+      img:"https://images.unsplash.com/photo-1576577445504-6af96477db52?w=300&q=70", tags:["hot"] },
+    { name:"Cơm tấm sườn bì chả", en:"Broken rice platter", price:"75.000đ",
+      desc:"Sườn nướng, bì, chả trứng trên nền cơm tấm, kèm mỡ hành.",
+      img:"https://images.unsplash.com/photo-1603088549155-6ae9395b928f?w=300&q=70", tags:[] },
+    { name:"Cá kho tộ", en:"Caramelised clay-pot fish", price:"89.000đ",
+      desc:"Cá basa kho nước dừa trong tộ đất, đậm đà, ăn cùng cơm trắng.",
+      img:"https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=300&q=70", tags:[] },
+    { name:"Đậu hũ sốt cà chua", en:"Tofu in tomato sauce", price:"49.000đ",
+      desc:"Đậu hũ chiên vàng sốt cà chua, hành lá — món chay nhẹ nhàng.",
+      img:"https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&q=70", tags:["veg"] },
+  ]},
+  { cat:"Tráng miệng", vn:"Desserts", items:[
+    { name:"Chè ba màu", en:"Three-colour sweet soup", price:"35.000đ",
+      desc:"Đậu đỏ, đậu xanh, thạch và nước cốt dừa béo mát.",
+      img:"https://images.unsplash.com/photo-1488477181946-6428a0291777?w=300&q=70", tags:["veg"] },
+  ]},
+  { cat:"Đồ uống", vn:"Drinks", items:[
+    { name:"Cà phê sữa đá", en:"Vietnamese iced milk coffee", price:"30.000đ",
+      desc:"Cà phê phin đậm pha sữa đặc, đá viên — vị Sài Gòn nguyên bản.",
+      img:"https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=300&q=70", tags:["signature"] },
+    { name:"Nước mía tắc", en:"Sugarcane & kumquat juice", price:"25.000đ",
+      desc:"Nước mía ép tươi pha tắc, thanh mát giải nhiệt.",
+      img:"https://images.unsplash.com/photo-1497534547324-0ebb3f052e88?w=300&q=70", tags:["out"] },
+  ]},
+];
+
+const nav = document.getElementById('nav');
+const main = document.getElementById('menu');
+
+menu.forEach((c,i)=>{
+  const id = 'cat'+i;
+  const btn = document.createElement('button');
+  btn.textContent = c.cat;
+  btn.className = i===0?'on':'';
+  btn.onclick = ()=>document.getElementById(id).scrollIntoView({behavior:'smooth',block:'start'});
+  nav.appendChild(btn);
+
+  const sec = document.createElement('section');
+  sec.className='cat'; sec.id=id;
+  sec.innerHTML = `<div class="cat-head"><h2>${c.cat}</h2><span class="vn">${c.vn}</span><span class="rule"></span></div>`;
+  c.items.forEach(d=>{
+    const out = d.tags.includes('out');
+    const tagHtml = d.tags.map(t=>{
+      const m={hot:['hot','Món hot'],signature:['signature','Đặc trưng'],veg:['veg','Món chay'],out:['out','Tạm hết']};
+      return `<span class="tag ${m[t][0]}">${m[t][1]}</span>`;
     }).join('');
-  }
-  function poll(){
-    google.script.run
-      .withSuccessHandler(function(o){render(o);setTimeout(poll,3000);})
-      .withFailureHandler(function(){document.getElementById('st').textContent='Mất kết nối, thử lại…';setTimeout(poll,5000);})
-      .getOrdersData();
-  }
-  function serve(id){
-    google.script.run.withSuccessHandler(function(){last='';poll();}).setServed(id);
-  }
-  poll();
-</script></body></html>`;
+    sec.innerHTML += `
+      <div class="dish ${out?'unavailable':''}">
+        <img class="thumb" src="${d.img}" alt="${d.name}" loading="lazy">
+        <div class="info">
+          <div class="dish-top">
+            <div class="dish-name">${d.name}<span class="en">${d.en}</span></div>
+            <div class="price">${d.price}</div>
+          </div>
+          <p class="desc">${d.desc}</p>
+          <div class="tags">${tagHtml}</div>
+          ${out?'':`<div data-add="${d.name}" data-price="${parseInt(d.price.replace(/\D/g,''))}"></div>`}
+        </div>
+      </div>`;
+  });
+  main.appendChild(sec);
+});
+
+// highlight nav khi cuộn
+const obs = new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      const idx=[...main.children].indexOf(e.target);
+      [...nav.children].forEach((b,i)=>b.classList.toggle('on',i===idx));
+    }
+  });
+},{rootMargin:'-40% 0px -55% 0px'});
+[...main.children].forEach(s=>obs.observe(s));
+
+/* ===== GIỎ HÀNG ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQW-gW48aob19JaK3xElIU3Gx6llm6kANfCnpQVntzCuR0GtMRlkYOtACf9oy7RoLy/exec';
+const SECRET  = 'NHV2025'; // phải trùng SECRET trong Code.gs
+const cart = {};            // {tenMon: {price, qty}}
+const fmt = n => n.toLocaleString('vi-VN')+'đ';
+const cartbar = document.getElementById('cartbar');
+const sheet = document.getElementById('sheet');
+const overlay = document.getElementById('overlay');
+
+// gắn nút +/- vào từng món
+document.querySelectorAll('[data-add]').forEach(slot=>{
+  const name = slot.dataset.add, price = +slot.dataset.price;
+  const render = ()=>{
+    const q = cart[name]?.qty || 0;
+    slot.innerHTML = q===0
+      ? `<button class="add">+ Chọn món</button>`
+      : `<div class="qtybox"><button data-m>−</button><span>${q}</span><button data-p>+</button></div>`;
+    slot.querySelector('.add')?.addEventListener('click',()=>{cart[name]={price,qty:1};render();sync();});
+    slot.querySelector('[data-p]')?.addEventListener('click',()=>{cart[name].qty++;render();sync();});
+    slot.querySelector('[data-m]')?.addEventListener('click',()=>{cart[name].qty--;if(cart[name].qty<=0)delete cart[name];render();sync();});
+  };
+  slot._render = render; render();
+});
+
+function totals(){
+  let count=0,sum=0;
+  for(const k in cart){count+=cart[k].qty;sum+=cart[k].qty*cart[k].price;}
+  return {count,sum};
 }
+function sync(){
+  const {count,sum}=totals();
+  document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartTotal').textContent=fmt(sum);
+  cartbar.classList.toggle('show',count>0);
+}
+
+/* mở modal giỏ */
+cartbar.onclick=()=>{drawSheet();overlay.classList.add('show');sheet.classList.add('show');};
+overlay.onclick=closeSheet;
+function closeSheet(){overlay.classList.remove('show');sheet.classList.remove('show');}
+
+function drawSheet(){
+  const {count,sum}=totals();
+  if(count===0){sheet.innerHTML=`<p class="empty">Giỏ hàng đang trống</p>`;return;}
+  let rows='';
+  for(const k in cart){
+    rows+=`<div class="crow"><div class="cn">${k}<small>${fmt(cart[k].price)}</small></div>
+      <div class="mini"><button onclick="chg('${k.replace(/'/g,"\\'")}',-1)">−</button><span>${cart[k].qty}</span><button onclick="chg('${k.replace(/'/g,"\\'")}',1)">+</button></div>
+      <div class="cp">${fmt(cart[k].qty*cart[k].price)}</div></div>`;
+  }
+  const tablePick = currentTable
+    ? `<div class="tablepick"><label>Số bàn</label>
+         <div style="display:flex;align-items:center;gap:10px">
+           <input id="tableNo" type="number" value="${currentTable}" readonly style="background:#f0ece2;flex:1">
+           <span style="font-size:12px;color:var(--leaf);font-weight:600">✓ đã quét QR</span>
+         </div></div>`
+    : `<div class="tablepick"><label>Số bàn</label>
+         <input id="tableNo" type="number" inputmode="numeric" placeholder="VD: 5" value=""></div>`;
+  sheet.innerHTML=`<h3>Giỏ của bạn</h3><p class="sub">Kiểm tra món rồi gửi xuống bếp</p>${rows}
+    ${tablePick}
+    <div class="grand"><span class="lbl">Tổng cộng</span><span class="amt">${fmt(sum)}</span></div>
+    <button class="send" id="sendBtn">${myOrders.length?'Gọi thêm cho bàn '+currentTable:'Gửi đơn xuống bếp'}</button>`;
+  document.getElementById('sendBtn').onclick=sendOrder;
+}
+window.chg=(k,d)=>{cart[k].qty+=d;if(cart[k].qty<=0)delete cart[k];
+  document.querySelectorAll('[data-add]').forEach(s=>{if(s.dataset.add===k)s._render();});
+  sync();drawSheet();};
+
+let currentTable = new URLSearchParams(location.search).get('ban')||'';
+let myOrders = [];   // lịch sử món khách đã gọi trong phiên này
+
+/* Gọi Apps Script bằng thẻ <script> — đi trọn chuyển hướng giống gõ URL tay.
+   Đây là cách CHẮC CHẮN ghi/đọc được Apps Script từ web ngoài. */
+function jsonp(extra, onOk){
+  const cb='__jp_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  const s=document.createElement('script');
+  let done=false;
+  const finish=res=>{ if(done)return; done=true; delete window[cb]; s.remove(); onOk&&onOk(res); };
+  window[cb]=res=>finish(res);
+  s.onerror=()=>finish(null);
+  s.src=API_URL+'?callback='+cb+'&'+extra+'&t='+Date.now();
+  document.body.appendChild(s);
+  setTimeout(()=>finish(null),20000); // phòng treo
+}
+
+/* gửi đơn lên Sheet, có xác nhận từ server + tự thử lại nếu mạng chập chờn */
+function sendOrder(){
+  const tbl=document.getElementById('tableNo').value.trim();
+  if(!tbl){document.getElementById('tableNo').focus();return;}
+  const {sum}=totals();
+  const items=Object.entries(cart).map(([n,v])=>({name:n,qty:v.qty,price:v.price}));
+  const lan=myOrders.length+1;   // lần gọi thứ mấy của bàn này (trong phiên khách)
+  const data=encodeURIComponent(JSON.stringify({table:tbl,total:sum,lan:lan,
+    items:items.map(({name,qty})=>({name,qty}))}));
+  const btn=document.getElementById('sendBtn');
+  btn.disabled=true; btn.textContent='Đang gửi...';
+
+  let tries=0;
+  function attempt(){
+    tries++;
+    jsonp('do=order&data='+data, res=>{
+      if(res&&res.ok){            // server xác nhận đã ghi
+        onSuccess();
+      }else if(tries<3){          // trượt -> thử lại
+        btn.textContent='Đang gửi lại... ('+tries+')';
+        setTimeout(attempt,1200);
+      }else{
+        btn.disabled=false; btn.textContent='Mạng yếu, bấm gửi lại';
+      }
+    });
+  }
+  function onSuccess(){
+    myOrders.push({time:new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}),table:tbl,items:items,total:sum});
+    for(const k in cart)delete cart[k];
+    document.querySelectorAll('[data-add]').forEach(s=>s._render());sync();
+    sheet.innerHTML=`<div class="done"><div class="big">✓</div><h3>Đã gửi xuống bếp!</h3>
+      <p>Đơn bàn <b>${tbl}</b> đã được tiếp nhận.<br>Món sẽ được phục vụ trong giây lát.</p>
+      <button class="send" style="margin-top:18px" onclick="showMyOrders()">Xem các món đã gọi</button></div>`;
+    updateMyBtn();
+  }
+  attempt();
+}
+
+/* hiện nút "Đơn của tôi" nổi khi đã gọi ít nhất 1 lần */
+function updateMyBtn(){
+  let b=document.getElementById('myBtn');
+  if(!myOrders.length){ if(b)b.remove(); return; }
+  const n=myOrders.reduce((s,o)=>s+o.items.reduce((a,i)=>a+i.qty,0),0);
+  if(!b){
+    b=document.createElement('button');
+    b.id='myBtn'; b.className='mybtn';
+    b.onclick=showMyOrders;
+    document.body.appendChild(b);
+  }
+  b.innerHTML='🧾 Đơn của tôi <span>'+n+'</span>';
+}
+
+/* bảng tổng các món khách đã gọi */
+function showMyOrders(){
+  if(!myOrders.length)return;
+  let html='<h3>Món bạn đã gọi</h3><p class="sub">Bàn '+(myOrders[0].table)+' · '+myOrders.length+' lần gọi</p>';
+  let grand=0;
+  const gom={};
+  myOrders.forEach(o=>{
+    html+=`<div style="font-size:12px;color:var(--gold);font-weight:600;margin:14px 0 4px">🕐 ${o.time}</div>`;
+    o.items.forEach(i=>{
+      html+=`<div class="crow"><div class="cn">${i.name}</div><div class="mini"><span>×${i.qty}</span></div><div class="cp">${fmt(i.qty*i.price)}</div></div>`;
+      grand+=i.qty*i.price;
+      gom[i.name]=(gom[i.name]||0)+i.qty;
+    });
+  });
+  html+=`<div class="grand"><span class="lbl">Tổng tất cả</span><span class="amt">${fmt(grand)}</span></div>
+    <p class="sub" style="text-align:center">Vui lòng thanh toán tại quầy. Cảm ơn bạn!</p>`;
+  sheet.innerHTML=html;
+  overlay.classList.add('show');sheet.classList.add('show');
+}
+
+const wrap=document.querySelector('.wrap');
+
+/* hiện dải "Bạn đang ở Bàn X" nếu đã quét QR */
+function refreshTableBar(){
+  const bar=document.getElementById('tableBar');
+  if(currentTable){
+    document.getElementById('tableBarNum').textContent='Bàn '+currentTable;
+    bar.style.display='flex';
+  }else{
+    bar.style.display='none';
+  }
+}
+window.changeTable=()=>{
+  const t=prompt('Nhập số bàn của bạn:',currentTable||'');
+  if(t!==null && t.trim()!==''){ currentTable=t.trim(); refreshTableBar(); }
+};
+refreshTableBar();
+</script>
+</body>
+</html>
