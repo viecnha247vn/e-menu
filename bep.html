@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bếp — Màn hình đơn (KDS)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: system-ui, sans-serif; background: #1A1714; color: #EDE7DF; padding-bottom: 30px; }
+  .wrap { max-width: 1200px; margin: 0 auto; }
+
+  header { position: sticky; top: 0; z-index: 10; background: #2A2420;
+    padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 2px solid #E8590C; }
+  header h1 { font-size: 18px; }
+  header .right { display: flex; gap: 10px; align-items: center; }
+  .dot-live { width: 9px; height: 9px; border-radius: 50%; background: #2B8A3E; display: inline-block;
+    animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .reset { background: transparent; border: 1px solid #5a4a3a; color: #E59866;
+    padding: 7px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
+  @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
+
+  .col { background: #221E1A; border-radius: 12px; padding: 10px; min-height: 200px; }
+  .col-head { display: flex; justify-content: space-between; align-items: center;
+    font-weight: 800; padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 15px; }
+  .col-head .dem { background: rgba(0,0,0,.25); border-radius: 20px; padding: 1px 10px; font-size: 14px; }
+  .h-moi { background: #3a2418; color: #FFA94D; }
+  .h-lam { background: #1b2c3a; color: #74C0FC; }
+  .h-xong { background: #1c3322; color: #8CE99A; }
+  .trong { text-align: center; color: #6b5d4f; font-size: 13px; padding: 24px; }
+
+  .ticket { background: #2E2823; border-radius: 10px; padding: 12px; margin-bottom: 10px;
+    border-left: 4px solid #E8590C; }
+  .ticket.lam { border-left-color: #4DABF7; }
+  .ticket.xong { border-left-color: #51CF66; opacity: .75; }
+  .t-head { display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #463c32; }
+  .t-ban { font-weight: 900; font-size: 17px; }
+  .t-time { font-size: 12px; color: #9c8d7d; }
+  .t-mon { display: flex; gap: 8px; font-size: 16px; padding: 4px 0; }
+  .t-mon b { color: #FFA94D; min-width: 30px; }
+  .act { width: 100%; color: #fff; border: none; padding: 11px; border-radius: 8px;
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+  .a-lam { background: #1971C2; }
+  .a-xong { background: #2F9E44; }
+  .a-mo { background: #495057; }
+
+  .pinbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: flex;
+    align-items: center; justify-content: center; z-index: 100; }
+  .pinbox .panel { background: #2A2420; padding: 28px; border-radius: 16px; width: 300px; text-align: center; }
+  .pinbox h2 { font-size: 17px; margin-bottom: 6px; }
+  .pinbox p { font-size: 13px; color: #9c8d7d; margin-bottom: 16px; }
+  .pinbox input { width: 100%; padding: 12px; font-size: 20px; text-align: center; letter-spacing: 6px;
+    border-radius: 10px; border: 1px solid #463c32; background: #1A1714; color: #fff; margin-bottom: 12px; }
+  .pinbox button { width: 100%; padding: 12px; background: #E8590C; color: #fff; border: none;
+    border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; }
+  .pinbox .err { color: #ff8787; font-size: 13px; min-height: 18px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>👨‍🍳 Màn hình bếp <span style="color:#9c8d7d;font-size:13px;font-weight:400">— KDS</span></h1>
+    <div class="right">
+      <span class="dot-live"></span><span style="font-size:12px;color:#9c8d7d">Trực tuyến</span>
+      <button class="reset" onclick="xoaHet()">Xóa hết</button>
+    </div>
+  </header>
+  <div class="grid" id="grid"></div>
+</div>
+
+<!-- Lớp PIN: bắt buộc nhập trước khi vào bếp -->
+<div class="pinbox" id="pinbox">
+  <div class="panel">
+    <h2>🔒 Trang bếp</h2>
+    <p>Nhập mã PIN để vào màn hình điều khiển</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
+    <div class="err" id="pinErr"></div>
+    <button onclick="vaoBep()">Vào bếp</button>
+  </div>
+</div>
+
+<script>
+/* ===== CONFIG — dán cùng URL /exec như khach.html ===== */
+const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+
+let PIN = ""; // nhập 1 lần ở màn hình khóa, gửi kèm mỗi lệnh đổi trạng thái
+const TT = {
+  moi:   { label:"Đơn mới",  cls:"h-moi",  tcls:"" },
+  dang_lam:{ label:"Đang làm", cls:"h-lam", tcls:"lam" },
+  xong:  { label:"Đã xong",  cls:"h-xong", tcls:"xong" },
+};
+const fmt = n => n.toLocaleString("vi-VN") + "đ";
+
+function vaoBep() {
+  const v = document.getElementById("pinInput").value.trim();
+  if (!v) { document.getElementById("pinErr").textContent = "Nhập mã PIN"; return; }
+  PIN = v;
+  document.getElementById("pinbox").style.display = "none";
+  taiDon();
+  setInterval(taiDon, 4000); // tự nhận đơn mới mỗi 4 giây
+}
+document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") vaoBep(); });
+
+async function taiDon() {
+  try {
+    const r = await fetch(API);
+    const d = await r.json();
+    if (d.ok) ve(d.orders.sort((a,b)=>a.luc-b.luc));
+  } catch(e){ /* giữ màn hình cũ khi mạng chập chờn */ }
+}
+
+function ve(orders) {
+  const cols = [
+    { key:"moi",     list: orders.filter(o=>o.trangThai==="moi") },
+    { key:"dang_lam",list: orders.filter(o=>o.trangThai==="dang_lam") },
+    { key:"xong",    list: orders.filter(o=>o.trangThai==="xong") },
+  ];
+  document.getElementById("grid").innerHTML = cols.map(c => `
+    <div class="col">
+      <div class="col-head ${TT[c.key].cls}">${TT[c.key].label}<span class="dem">${c.list.length}</span></div>
+      ${c.list.length ? c.list.map(o=>ticket(o)).join("") : `<div class="trong">Chưa có đơn</div>`}
+    </div>`).join("");
+}
+
+function ticket(o) {
+  const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+  let btn = "";
+  if (o.trangThai==="moi")      btn = `<button class="act a-lam"  onclick="doi('${o.id}','dang_lam')">Bắt đầu làm</button>`;
+  if (o.trangThai==="dang_lam") btn = `<button class="act a-xong" onclick="doi('${o.id}','xong')">Xong món ✓</button>`;
+  if (o.trangThai==="xong")     btn = `<button class="act a-mo"   onclick="doi('${o.id}','dang_lam')">↩ Mở lại</button>`;
+  return `
+    <div class="ticket ${TT[o.trangThai].tcls}">
+      <div class="t-head"><span class="t-ban">${o.ban}</span><span class="t-time">${time}</span></div>
+      ${o.items.map(i=>`<div class="t-mon"><b>×${i.soLuong}</b><span>${i.ten}</span></div>`).join("")}
+      ${btn}
+    </div>`;
+}
+
+async function doi(id, trangThai) {
+  try {
+    const r = await fetch(API, {
+      method:"POST",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify({ action:"update", id, trangThai, pin:PIN })
+    });
+    const d = await r.json();
+    if (!d.ok) { alert(d.error || "Không đổi được"); return; }
+    taiDon();
+  } catch(e){ alert("Lỗi mạng: " + e); }
+}
+
+async function xoaHet() {
+  if (!confirm("Xóa toàn bộ đơn?")) return;
+  try {
+    const r = await fetch(API, {
+      method:"POST",
+      headers:{ "Content-Type":"text/plain;charset=utf-8" },
+      body: JSON.stringify({ action:"reset", pin:PIN })
+    });
+    const d = await r.json();
+    if (!d.ok) { alert(d.error || "Không xóa được"); return; }
+    taiDon();
+  } catch(e){ alert("Lỗi mạng: " + e); }
+}
+</script>
+</body>
+</html>

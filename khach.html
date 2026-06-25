@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Quán Việt — Gọi món</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 110px; }
+  .wrap { max-width: 600px; margin: 0 auto; }
+
+  header { position: sticky; top: 0; z-index: 10; background: #7A1F1F; color: #fff;
+    padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  header .logo { font-size: 20px; font-weight: 900; letter-spacing: 1px; }
+  header .tag { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 2px; }
+
+  .body { padding: 16px; }
+  .banner { display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(135deg,#E8590C,#D9480F); color: #fff;
+    padding: 16px 20px; border-radius: 14px; margin-bottom: 14px; }
+  .banner .lab { font-size: 12px; opacity: .85; }
+  .banner .ban { font-size: 28px; font-weight: 900; }
+  .banner .tong { font-size: 22px; font-weight: 800; }
+
+  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .card h3 { font-size: 16px; margin-bottom: 12px; }
+
+  /* Tiến trình */
+  .luot { border-left: 3px solid #F1DFC9; padding-left: 12px; margin-bottom: 16px; }
+  .luot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .luot-time { font-size: 12px; color: #999; }
+  .mon-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
+  .mon-row b { color: #E8590C; }
+
+  .steps { display: flex; align-items: center; margin-top: 10px; }
+  .step { flex: 1; text-align: center; position: relative; }
+  .step .dot { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 4px;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    background: #E9E4DC; color: #aaa; border: 2px solid #E9E4DC; transition: .3s; }
+  .step .txt { font-size: 11px; color: #aaa; }
+  .step::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%;
+    height: 2px; background: #E9E4DC; z-index: 0; }
+  .step:first-child::before { display: none; }
+  .step.on .dot { background: #2B8A3E; color: #fff; border-color: #2B8A3E; }
+  .step.on .txt { color: #2B8A3E; font-weight: 700; }
+  .step.cur .dot { background: #E8590C; color: #fff; border-color: #E8590C;
+    box-shadow: 0 0 0 4px rgba(232,89,12,.2); }
+  .step.cur .txt { color: #E8590C; font-weight: 700; }
+
+  /* Thực đơn */
+  .item { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #F2EDE5; }
+  .item .ic { font-size: 26px; }
+  .item .ten { font-weight: 700; font-size: 15px; }
+  .item .mota { font-size: 12px; color: #999; margin: 2px 0; }
+  .item .gia { font-size: 14px; font-weight: 700; color: #E8590C; }
+  .stepper { display: flex; align-items: center; gap: 8px; }
+  .stepper button { width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; }
+  .b-sub { border: 1px solid #ddd; background: #fff; }
+  .b-add { border: none; background: #E8590C; color: #fff; font-weight: 700; }
+  .so { font-weight: 800; min-width: 18px; text-align: center; }
+
+  .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
+    background: #7A1F1F; color: #fff; padding: 14px 20px; display: none;
+    justify-content: space-between; align-items: center; box-shadow: 0 -2px 12px rgba(0,0,0,.2); }
+  .giobar.show { display: flex; }
+  .giobar .gui { background: #E8590C; color: #fff; border: none; padding: 12px 22px;
+    border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; }
+
+  .empty { color: #aaa; font-size: 14px; text-align: center; padding: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">QUÁN VIỆT</div>
+    <div class="tag">Thực đơn điện tử</div>
+  </header>
+  <div class="body">
+    <div class="banner">
+      <div>
+        <div class="lab">Bạn đang ngồi</div>
+        <div class="ban" id="banSo">Bàn —</div>
+      </div>
+      <div style="text-align:right">
+        <div class="lab">Tạm tính</div>
+        <div class="tong" id="tongDaGoi">0đ</div>
+      </div>
+    </div>
+
+    <div class="card" id="cardDaGoi" style="display:none">
+      <h3>📋 Tiến trình món đã gọi</h3>
+      <div id="daGoi"></div>
+    </div>
+
+    <div class="card">
+      <h3>🍽️ Thực đơn — chạm + để chọn</h3>
+      <div id="menu"></div>
+    </div>
+  </div>
+</div>
+
+<div class="giobar" id="giobar">
+  <div>
+    <div style="font-size:13px;opacity:.85" id="gioSL">0 món</div>
+    <div style="font-size:20px;font-weight:800" id="gioTong">0đ</div>
+  </div>
+  <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
+</div>
+
+<script>
+/* ===== CONFIG — dán URL /exec của Google Apps Script vào đây ===== */
+const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+
+/* Số bàn lấy từ URL: ...khach.html?ban=05  (mỗi bàn 1 mã QR khác nhau) */
+const BAN = new URLSearchParams(location.search).get("ban") || "05";
+
+const MENU = [
+  { id:"m1", ten:"Phở bò tái", gia:55000, mota:"Bánh phở, thịt bò tái, hành ngò", ic:"🍜" },
+  { id:"m2", ten:"Bún bò Huế", gia:60000, mota:"Bún, giò heo, chả, sa tế", ic:"🌶️" },
+  { id:"m3", ten:"Cơm tấm sườn", gia:50000, mota:"Sườn nướng, bì, chả, trứng", ic:"🍚" },
+  { id:"m4", ten:"Bánh mì thịt", gia:25000, mota:"Pa-tê, thịt nguội, đồ chua", ic:"🥖" },
+  { id:"m5", ten:"Gỏi cuốn (2 cuốn)", gia:30000, mota:"Tôm, thịt, bún, rau sống", ic:"🥗" },
+  { id:"m6", ten:"Chả giò (4 cuốn)", gia:35000, mota:"Nem rán giòn, nước mắm chua ngọt", ic:"🥟" },
+  { id:"m7", ten:"Bún chả Hà Nội", gia:55000, mota:"Chả nướng, bún, nước chấm", ic:"🍢" },
+  { id:"m8", ten:"Hủ tiếu Nam Vang", gia:50000, mota:"Tôm, thịt bằm, gan, trứng cút", ic:"🍲" },
+  { id:"m9", ten:"Cà phê sữa đá", gia:20000, mota:"Cà phê phin, sữa đặc, đá", ic:"☕" },
+  { id:"m10", ten:"Trà đá", gia:5000, mota:"Trà đá mát lạnh", ic:"🧊" },
+];
+const TT = { moi:0, dang_lam:1, xong:2 };
+const fmt = n => n.toLocaleString("vi-VN") + "đ";
+let gio = {}; // {id: soLuong}
+
+document.getElementById("banSo").textContent = "Bàn " + BAN;
+
+/* ---- Vẽ thực đơn ---- */
+function veMenu() {
+  const el = document.getElementById("menu");
+  el.innerHTML = MENU.map(m => `
+    <div class="item">
+      <span class="ic">${m.ic}</span>
+      <div style="flex:1;min-width:0">
+        <div class="ten">${m.ten}</div>
+        <div class="mota">${m.mota}</div>
+        <div class="gia">${fmt(m.gia)}</div>
+      </div>
+      <div class="stepper">
+        ${gio[m.id] ? `<button class="b-sub" onclick="bot('${m.id}')">−</button><span class="so">${gio[m.id]}</span>` : ``}
+        <button class="b-add" onclick="them('${m.id}')">+</button>
+      </div>
+    </div>`).join("");
+}
+function them(id){ gio[id]=(gio[id]||0)+1; veMenu(); veGio(); }
+function bot(id){ gio[id]--; if(gio[id]<=0) delete gio[id]; veMenu(); veGio(); }
+
+function veGio() {
+  const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return {sl, gia:m.gia}; });
+  const sl = items.reduce((s,i)=>s+i.sl,0);
+  const tong = items.reduce((s,i)=>s+i.sl*i.gia,0);
+  document.getElementById("giobar").classList.toggle("show", sl>0);
+  document.getElementById("gioSL").textContent = sl + " món chờ gửi";
+  document.getElementById("gioTong").textContent = fmt(tong);
+}
+
+/* ---- Gửi món vào bếp ---- */
+async function guiDi() {
+  const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return { ten:m.ten, gia:m.gia, soLuong:sl }; });
+  if (!items.length) return;
+  try {
+    await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // tránh CORS preflight
+      body: JSON.stringify({ action:"add", ban:BAN, items })
+    });
+    gio = {}; veMenu(); veGio();
+    setTimeout(taiDon, 600);
+  } catch(e){ alert("Gửi không được, kiểm tra mạng. " + e); }
+}
+
+/* ---- Tải đơn đã gọi (chỉ xem) ---- */
+async function taiDon() {
+  try {
+    const r = await fetch(API + "?ban=" + encodeURIComponent(BAN));
+    const d = await r.json();
+    if (!d.ok) return;
+    veTienTrinh(d.orders.sort((a,b)=>a.luc-b.luc));
+  } catch(e){ /* giữ nguyên màn hình cũ nếu lỗi mạng */ }
+}
+
+function veTienTrinh(orders) {
+  const card = document.getElementById("cardDaGoi");
+  const box = document.getElementById("daGoi");
+  if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; return; }
+  card.style.display="block";
+  let tong = 0;
+  box.innerHTML = orders.map(o => {
+    const sub = o.items.reduce((s,i)=>s+i.gia*i.soLuong,0); tong += sub;
+    const cur = TT[o.trangThai];
+    const buoc = [["📥","Đã nhận"],["🔥","Đang nấu"],["✅","Xong"]];
+    const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+    return `
+      <div class="luot">
+        <div class="luot-head"><span class="luot-time">${time}</span></div>
+        ${o.items.map(i=>`<div class="mon-row"><span>${i.ten} <b>×${i.soLuong}</b></span><span>${fmt(i.gia*i.soLuong)}</span></div>`).join("")}
+        <div class="steps">
+          ${buoc.map((b,idx)=>`<div class="step ${idx<cur?'on':''} ${idx===cur?'cur':''}"><div class="dot">${idx<=cur?b[0]:idx+1}</div><div class="txt">${b[1]}</div></div>`).join("")}
+        </div>
+      </div>`;
+  }).join("");
+  document.getElementById("tongDaGoi").textContent = fmt(tong);
+}
+
+veMenu();
+taiDon();
+setInterval(taiDon, 5000); // tự cập nhật tiến trình mỗi 5 giây
+</script>
+</body>
+</html>
