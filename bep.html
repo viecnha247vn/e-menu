@@ -2,219 +2,300 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bếp — Màn hình đơn (KDS)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Quán Việt — Gọi món</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: system-ui, sans-serif; background: #1A1714; color: #EDE7DF; padding-bottom: 30px; }
-  .wrap { max-width: 1200px; margin: 0 auto; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 150px; }
+  .wrap { max-width: 600px; margin: 0 auto; }
 
-  header { position: sticky; top: 0; z-index: 10; background: #2A2420;
-    padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 2px solid #E8590C; }
-  header h1 { font-size: 18px; }
-  header .right { display: flex; gap: 10px; align-items: center; }
-  .dot-live { width: 9px; height: 9px; border-radius: 50%; background: #2B8A3E; display: inline-block;
-    animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .reset { background: transparent; border: 1px solid #5a4a3a; color: #E59866;
-    padding: 7px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
+  header { position: sticky; top: 0; z-index: 10; background: #7A1F1F; color: #fff;
+    padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  header .logo { font-size: 20px; font-weight: 900; letter-spacing: 1px; }
+  header .tag { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 2px; }
 
-  /* Băng yêu cầu phục vụ */
-  .sv-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px 0; }
-  .sv-card { background: #4a3a12; border: 1px solid #f2c037; border-radius: 10px;
-    padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
-  .sv-card .txt { font-weight: 800; color: #ffe08a; }
-  .sv-card .ban { background: #f2c037; color: #2A2420; border-radius: 6px; padding: 1px 8px; font-weight: 900; }
-  .sv-card .note { font-size: 12px; color: #d9c9a0; }
-  .sv-card button { background: #2F9E44; color: #fff; border: none; padding: 8px 12px;
-    border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .body { padding: 16px; }
+  .banner { display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(135deg,#E8590C,#D9480F); color: #fff;
+    padding: 16px 20px; border-radius: 14px; margin-bottom: 12px; }
+  .banner .lab { font-size: 12px; opacity: .85; }
+  .banner .ban { font-size: 28px; font-weight: 900; }
+  .banner .tong { font-size: 22px; font-weight: 800; }
 
-  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
-  @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
+  .quick { display: flex; gap: 10px; margin-bottom: 14px; }
+  .quick button { flex: 1; padding: 13px; border: 1px solid #E7D9C5; background: #fff;
+    border-radius: 12px; font-size: 14px; font-weight: 700; color: #7A1F1F; cursor: pointer; }
+  .quick button:active { background: #F6EEE3; }
 
-  .col { background: #221E1A; border-radius: 12px; padding: 10px; min-height: 200px; }
-  .col-head { display: flex; justify-content: space-between; align-items: center;
-    font-weight: 800; padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 15px; }
-  .col-head .dem { background: rgba(0,0,0,.25); border-radius: 20px; padding: 1px 10px; font-size: 14px; }
-  .h-moi { background: #3a2418; color: #FFA94D; }
-  .h-lam { background: #1b2c3a; color: #74C0FC; }
-  .h-xong { background: #1c3322; color: #8CE99A; }
-  .trong { text-align: center; color: #6b5d4f; font-size: 13px; padding: 24px; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .card h3 { font-size: 16px; margin-bottom: 12px; }
 
-  .ticket { background: #2E2823; border-radius: 10px; padding: 12px; margin-bottom: 10px;
-    border-left: 4px solid #E8590C; }
-  .ticket.lam { border-left-color: #4DABF7; }
-  .ticket.xong { border-left-color: #51CF66; opacity: .75; }
-  .t-head { display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #463c32; }
-  .t-ban { font-weight: 900; font-size: 17px; }
-  .t-time { font-size: 12px; color: #9c8d7d; }
-  .t-mon { display: flex; gap: 8px; font-size: 16px; padding: 4px 0; }
-  .t-mon b { color: #FFA94D; min-width: 30px; }
-  .t-note { font-size: 13px; color: #ffd8a8; background: #3a2c18; padding: 6px 9px;
-    border-radius: 7px; margin-top: 6px; }
-  .act { width: 100%; color: #fff; border: none; padding: 11px; border-radius: 8px;
-    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; }
-  .a-lam { background: #1971C2; }
-  .a-xong { background: #2F9E44; }
-  .a-mo { background: #495057; }
+  .luot { border-left: 3px solid #F1DFC9; padding-left: 12px; margin-bottom: 16px; }
+  .luot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .luot-time { font-size: 12px; color: #999; }
+  .mon-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
+  .mon-row b { color: #E8590C; }
+  .note-row { font-size: 12px; color: #B0641E; background: #FFF4E6; padding: 5px 9px;
+    border-radius: 8px; margin-top: 6px; }
+  .sv-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+    color: #1864AB; background: #E7F0FA; padding: 8px 12px; border-radius: 10px; }
+  .sv-chip.done { color: #2B8A3E; background: #EBFBEE; }
 
-  .pinbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: flex;
-    align-items: center; justify-content: center; z-index: 100; }
-  .pinbox .panel { background: #2A2420; padding: 28px; border-radius: 16px; width: 300px; text-align: center; }
-  .pinbox h2 { font-size: 17px; margin-bottom: 6px; }
-  .pinbox p { font-size: 13px; color: #9c8d7d; margin-bottom: 16px; }
-  .pinbox input { width: 100%; padding: 12px; font-size: 20px; text-align: center; letter-spacing: 6px;
-    border-radius: 10px; border: 1px solid #463c32; background: #1A1714; color: #fff; margin-bottom: 12px; }
-  .pinbox button { width: 100%; padding: 12px; background: #E8590C; color: #fff; border: none;
-    border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; }
-  .pinbox .err { color: #ff8787; font-size: 13px; min-height: 18px; }
+  .steps { display: flex; align-items: center; margin-top: 10px; }
+  .step { flex: 1; text-align: center; position: relative; }
+  .step .dot { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 4px;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    background: #E9E4DC; color: #aaa; border: 2px solid #E9E4DC; transition: .3s; }
+  .step .txt { font-size: 11px; color: #aaa; }
+  .step::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%;
+    height: 2px; background: #E9E4DC; z-index: 0; }
+  .step:first-child::before { display: none; }
+  .step.on .dot { background: #2B8A3E; color: #fff; border-color: #2B8A3E; }
+  .step.on .txt { color: #2B8A3E; font-weight: 700; }
+  .step.cur .dot { background: #E8590C; color: #fff; border-color: #E8590C;
+    box-shadow: 0 0 0 4px rgba(232,89,12,.2); }
+  .step.cur .txt { color: #E8590C; font-weight: 700; }
+
+  .item { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #F2EDE5; }
+  .item .ic { font-size: 26px; }
+  .item .ten { font-weight: 700; font-size: 15px; }
+  .item .mota { font-size: 12px; color: #999; margin: 2px 0; }
+  .item .gia { font-size: 14px; font-weight: 700; color: #E8590C; }
+  .stepper { display: flex; align-items: center; gap: 8px; }
+  .stepper button { width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; }
+  .b-sub { border: 1px solid #ddd; background: #fff; }
+  .b-add { border: none; background: #E8590C; color: #fff; font-weight: 700; }
+  .so { font-weight: 800; min-width: 18px; text-align: center; }
+
+  .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
+    background: #7A1F1F; color: #fff; padding: 12px 16px; display: none; flex-direction: column;
+    gap: 10px; box-shadow: 0 -2px 12px rgba(0,0,0,.2); }
+  .giobar.show { display: flex; }
+  .giobar .note-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: none;
+    font-size: 14px; background: rgba(255,255,255,.15); color: #fff; }
+  .giobar .note-input::placeholder { color: rgba(255,255,255,.6); }
+  .giobar-row { display: flex; justify-content: space-between; align-items: center; }
+  .giobar .gui { background: #E8590C; color: #fff; border: none; padding: 12px 22px;
+    border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; }
+
+  .toast { position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%);
+    background: #2B8A3E; color: #fff; padding: 12px 22px; border-radius: 30px; font-weight: 700;
+    font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.25); opacity: 0; transition: .3s; z-index: 50; }
+  .toast.show { opacity: 1; bottom: 180px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>👨‍🍳 Màn hình bếp <span style="color:#9c8d7d;font-size:13px;font-weight:400">— KDS</span></h1>
-    <div class="right">
-      <span class="dot-live"></span><span style="font-size:12px;color:#9c8d7d">Trực tuyến</span>
-      <button class="reset" onclick="xoaHet()">Xóa hết</button>
-    </div>
+    <div class="logo">QUÁN VIỆT</div>
+    <div class="tag">Thực đơn điện tử</div>
   </header>
-  <div class="sv-bar" id="svBar"></div>
-  <div class="grid" id="grid"></div>
-</div>
+  <div class="body">
+    <div class="banner">
+      <div>
+        <div class="lab">Bạn đang ngồi</div>
+        <div class="ban" id="banSo">Bàn —</div>
+      </div>
+      <div style="text-align:right">
+        <div class="lab">Tạm tính</div>
+        <div class="tong" id="tongDaGoi">0đ</div>
+      </div>
+    </div>
 
-<div class="pinbox" id="pinbox">
-  <div class="panel">
-    <h2>🔒 Trang bếp</h2>
-    <p>Nhập mã PIN để vào màn hình điều khiển</p>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
-    <div class="err" id="pinErr"></div>
-    <button onclick="vaoBep()">Vào bếp</button>
+    <div class="quick">
+      <button onclick="goiNhanVien()">📣 Gọi nhân viên</button>
+      <button onclick="xinTinhTien()">🧾 Xin tính tiền</button>
+    </div>
+
+    <div class="card" id="cardDaGoi" style="display:none">
+      <h3>📋 Tiến trình món đã gọi</h3>
+      <div id="daGoi"></div>
+    </div>
+
+    <div class="card">
+      <h3>🍽️ Thực đơn — chạm + để gọi thêm</h3>
+      <div id="menu"></div>
+    </div>
+
+    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 3.2</div>
   </div>
 </div>
 
+<div class="giobar" id="giobar">
+  <input id="ghiChu" class="note-input" placeholder="Ghi chú cho bếp (vd: ít cay, không hành)…" maxlength="120">
+  <div class="giobar-row">
+    <div>
+      <div style="font-size:13px;opacity:.85" id="gioSL">0 món</div>
+      <div style="font-size:20px;font-weight:800" id="gioTong">0đ</div>
+    </div>
+    <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-const API = "/api/menu";
+/* ===== CONFIG ===== */
+const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
 
+/* Gọi thẳng Apps Script: thử fetch GET trước, lỗi thì dùng JSONP (thẻ script) */
+function jsonpRaw(params) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb" + Math.random().toString(36).slice(2);
+    const s = document.createElement("script");
+    const timer = setTimeout(() => { cleanup(); reject(new Error("Hết thời gian chờ máy chủ")); }, 15000);
+    function cleanup(){ clearTimeout(timer); delete window[cb]; if (s.parentNode) s.remove(); }
+    window[cb] = (data) => { cleanup(); resolve(data); };
+    s.onerror = () => { cleanup(); reject(new Error("Không kết nối được máy chủ")); };
+    const q = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
+    s.src = API + "?" + q + "&cb=" + cb;
+    document.head.appendChild(s);
+  });
+}
 async function jsonp(params) {
-  const q = Object.entries(params).map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
-  const res = await fetch(API + "?" + q);
-  return res.json();
-}
-
-let PIN = "";
-let audio = null;
-let seen = new Set();
-let firstLoad = true;
-
-const TT = {
-  moi:   { label:"Đơn mới",  cls:"h-moi", tcls:"" },
-  dang_lam:{ label:"Đang làm", cls:"h-lam", tcls:"lam" },
-  xong:  { label:"Đã xong",  cls:"h-xong", tcls:"xong" },
-};
-const fmt = n => n.toLocaleString("vi-VN") + "đ";
-const laYeuCau = o => o.items.every(i => i.gia === 0);
-
-function vaoBep() {
-  const v = document.getElementById("pinInput").value.trim();
-  if (!v) { document.getElementById("pinErr").textContent = "Nhập mã PIN"; return; }
-  PIN = v;
-  try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
-  document.getElementById("pinbox").style.display = "none";
-  taiDon();
-  setInterval(taiDon, 4000);
-}
-document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") vaoBep(); });
-
-/* Chuông báo đơn mới */
-function ting() {
-  if (!audio) return;
+  const q = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
   try {
-    [0, 0.16].forEach((t, k) => {
-      const o = audio.createOscillator(), g = audio.createGain();
-      o.connect(g); g.connect(audio.destination);
-      o.type = "sine"; o.frequency.value = k === 0 ? 880 : 1175;
-      g.gain.setValueAtTime(0.0001, audio.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.25, audio.currentTime + t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + t + 0.14);
-      o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.15);
-    });
-  } catch(e){}
+    const r = await fetch(API + "?" + q);
+    if (r.ok) return JSON.parse(await r.text());
+  } catch (e) {}
+  return jsonpRaw(params);
+}
+
+const BAN = new URLSearchParams(location.search).get("ban") || "05";
+
+const MENU = [
+  { id:"m1", ten:"Phở bò tái", gia:55000, mota:"Bánh phở, thịt bò tái, hành ngò", ic:"🍜" },
+  { id:"m2", ten:"Bún bò Huế", gia:60000, mota:"Bún, giò heo, chả, sa tế", ic:"🌶️" },
+  { id:"m3", ten:"Cơm tấm sườn", gia:50000, mota:"Sườn nướng, bì, chả, trứng", ic:"🍚" },
+  { id:"m4", ten:"Bánh mì thịt", gia:25000, mota:"Pa-tê, thịt nguội, đồ chua", ic:"🥖" },
+  { id:"m5", ten:"Gỏi cuốn (2 cuốn)", gia:30000, mota:"Tôm, thịt, bún, rau sống", ic:"🥗" },
+  { id:"m6", ten:"Chả giò (4 cuốn)", gia:35000, mota:"Nem rán giòn, nước mắm chua ngọt", ic:"🥟" },
+  { id:"m7", ten:"Bún chả Hà Nội", gia:55000, mota:"Chả nướng, bún, nước chấm", ic:"🍢" },
+  { id:"m8", ten:"Hủ tiếu Nam Vang", gia:50000, mota:"Tôm, thịt bằm, gan, trứng cút", ic:"🍲" },
+  { id:"m9", ten:"Cà phê sữa đá", gia:20000, mota:"Cà phê phin, sữa đặc, đá", ic:"☕" },
+  { id:"m10", ten:"Trà đá", gia:5000, mota:"Trà đá mát lạnh", ic:"🧊" },
+];
+const TT = { moi:0, dang_lam:1, xong:2 };
+const fmt = n => n.toLocaleString("vi-VN") + "đ";
+let gio = {};
+
+document.getElementById("banSo").textContent = "Bàn " + BAN;
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function veMenu() {
+  document.getElementById("menu").innerHTML = MENU.map(m => `
+    <div class="item">
+      <span class="ic">${m.ic}</span>
+      <div style="flex:1;min-width:0">
+        <div class="ten">${m.ten}</div>
+        <div class="mota">${m.mota}</div>
+        <div class="gia">${fmt(m.gia)}</div>
+      </div>
+      <div class="stepper">
+        ${gio[m.id] ? `<button class="b-sub" onclick="bot('${m.id}')">−</button><span class="so">${gio[m.id]}</span>` : ``}
+        <button class="b-add" onclick="them('${m.id}')">+</button>
+      </div>
+    </div>`).join("");
+}
+function them(id){ gio[id]=(gio[id]||0)+1; veMenu(); veGio(); }
+function bot(id){ gio[id]--; if(gio[id]<=0) delete gio[id]; veMenu(); veGio(); }
+
+function veGio() {
+  const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return {sl, gia:m.gia}; });
+  const sl = items.reduce((s,i)=>s+i.sl,0);
+  const tong = items.reduce((s,i)=>s+i.sl*i.gia,0);
+  document.getElementById("giobar").classList.toggle("show", sl>0);
+  document.getElementById("gioSL").textContent = sl + " món chờ gửi";
+  document.getElementById("gioTong").textContent = fmt(tong);
+}
+
+/* Gửi món */
+async function guiDi() {
+  const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return { ten:m.ten, gia:m.gia, soLuong:sl }; });
+  if (!items.length) return;
+  const note = document.getElementById("ghiChu").value.trim();
+  try {
+    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
+    if (!d.ok) { alert("Bếp báo lỗi: " + (d.error || "không rõ")); return; }
+    gio = {}; document.getElementById("ghiChu").value = "";
+    veMenu(); veGio(); toast("Đã gửi vào bếp ✓");
+    setTimeout(taiDon, 600);
+  } catch(e){ alert("Gửi không được, kiểm tra mạng. " + e); }
+}
+
+/* Yêu cầu phục vụ */
+async function guiYeuCau(items, note, msg) {
+  try {
+    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
+    if (!d.ok) { alert("Lỗi: " + (d.error||"")); return; }
+    toast(msg); setTimeout(taiDon, 600);
+  } catch(e){ alert("Không gửi được, kiểm tra mạng. " + e); }
+}
+function goiNhanVien() {
+  guiYeuCau([{ ten:"📣 Gọi nhân viên", gia:0, soLuong:1 }], "", "Đã gọi nhân viên ✓");
+}
+function xinTinhTien() {
+  const tong = tinhTong(window._orders || []);
+  guiYeuCau([{ ten:"🧾 Xin tính tiền", gia:0, soLuong:1 }], "Tạm tính: " + fmt(tong), "Đã gửi yêu cầu tính tiền ✓");
+}
+
+function tinhTong(orders) {
+  return orders.reduce((s,o)=> s + o.items.reduce((a,i)=> a + (i.gia>0 ? i.gia*i.soLuong : 0), 0), 0);
 }
 
 async function taiDon() {
   try {
-    const d = await jsonp({ action:"list" });
+    const d = await jsonp({ action:"list", ban: BAN });
     if (!d.ok) return;
     const orders = d.orders.sort((a,b)=>a.luc-b.luc);
-    const coDonMoi = orders.some(o => !seen.has(o.id));
-    if (!firstLoad && coDonMoi) ting();
-    orders.forEach(o => seen.add(o.id));
-    firstLoad = false;
-    ve(orders);
-  } catch(e){ /* giữ màn hình cũ */ }
+    window._orders = orders;
+    veTienTrinh(orders);
+  } catch(e){ /* giữ màn hình cũ nếu lỗi mạng */ }
 }
 
-function ve(orders) {
-  // Băng yêu cầu phục vụ (chưa xử lý)
-  const yc = orders.filter(o => laYeuCau(o) && o.trangThai !== "xong");
-  document.getElementById("svBar").innerHTML = yc.map(o => `
-    <div class="sv-card">
-      <span class="ban">${o.ban}</span>
-      <div>
-        <div class="txt">${o.items[0].ten}</div>
-        ${o.note ? `<div class="note">${o.note}</div>` : ``}
-      </div>
-      <button onclick="doi('${o.id}','xong')">Đã xử lý ✓</button>
-    </div>`).join("");
+function veTienTrinh(orders) {
+  const card = document.getElementById("cardDaGoi");
+  const box = document.getElementById("daGoi");
+  if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; return; }
+  card.style.display="block";
 
-  // Cột món ăn (bỏ yêu cầu phục vụ ra khỏi 3 cột)
-  const mon = orders.filter(o => !laYeuCau(o));
-  const cols = [
-    { key:"moi",     list: mon.filter(o=>o.trangThai==="moi") },
-    { key:"dang_lam",list: mon.filter(o=>o.trangThai==="dang_lam") },
-    { key:"xong",    list: mon.filter(o=>o.trangThai==="xong") },
-  ];
-  document.getElementById("grid").innerHTML = cols.map(c => `
-    <div class="col">
-      <div class="col-head ${TT[c.key].cls}">${TT[c.key].label}<span class="dem">${c.list.length}</span></div>
-      ${c.list.length ? c.list.map(o=>ticket(o)).join("") : `<div class="trong">Chưa có đơn</div>`}
-    </div>`).join("");
+  box.innerHTML = orders.map(o => {
+    const isSV = o.items.every(i => i.gia === 0); // yêu cầu phục vụ
+    const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+
+    if (isSV) {
+      const xong = o.trangThai === "xong";
+      return `<div class="luot">
+        <div class="luot-head"><span class="luot-time">${time}</span></div>
+        <span class="sv-chip ${xong?'done':''}">${o.items[0].ten} — ${xong ? "đã xử lý ✓" : "đang chờ…"}</span>
+      </div>`;
+    }
+
+    const cur = TT[o.trangThai] ?? 0;
+    const buoc = [["📥","Đã nhận"],["🔥","Đang nấu"],["✅","Xong"]];
+    return `
+      <div class="luot">
+        <div class="luot-head"><span class="luot-time">${time}</span></div>
+        ${o.items.map(i=>`<div class="mon-row"><span>${i.ten} <b>×${i.soLuong}</b></span><span>${fmt(i.gia*i.soLuong)}</span></div>`).join("")}
+        ${o.note ? `<div class="note-row">📝 ${o.note}</div>` : ``}
+        <div class="steps">
+          ${buoc.map((b,idx)=>`<div class="step ${idx<cur?'on':''} ${idx===cur?'cur':''}"><div class="dot">${idx<=cur?b[0]:idx+1}</div><div class="txt">${b[1]}</div></div>`).join("")}
+        </div>
+      </div>`;
+  }).join("");
+
+  document.getElementById("tongDaGoi").textContent = fmt(tinhTong(orders));
 }
 
-function ticket(o) {
-  const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
-  let btn = "";
-  if (o.trangThai==="moi")      btn = `<button class="act a-lam"  onclick="doi('${o.id}','dang_lam')">Bắt đầu làm</button>`;
-  if (o.trangThai==="dang_lam") btn = `<button class="act a-xong" onclick="doi('${o.id}','xong')">Xong món ✓</button>`;
-  if (o.trangThai==="xong")     btn = `<button class="act a-mo"   onclick="doi('${o.id}','dang_lam')">↩ Mở lại</button>`;
-  return `
-    <div class="ticket ${TT[o.trangThai].tcls}">
-      <div class="t-head"><span class="t-ban">${o.ban}</span><span class="t-time">${time}</span></div>
-      ${o.items.map(i=>`<div class="t-mon"><b>×${i.soLuong}</b><span>${i.ten}</span></div>`).join("")}
-      ${o.note ? `<div class="t-note">📝 ${o.note}</div>` : ``}
-      ${btn}
-    </div>`;
-}
-
-async function doi(id, trangThai) {
-  try {
-    const d = await jsonp({ action:"update", id, trangThai, pin:PIN });
-    if (!d.ok) { alert(d.error || "Không đổi được"); return; }
-    taiDon();
-  } catch(e){ alert("Lỗi mạng: " + e); }
-}
-
-async function xoaHet() {
-  if (!confirm("Xóa toàn bộ đơn?")) return;
-  try {
-    const d = await jsonp({ action:"reset", pin:PIN });
-    if (!d.ok) { alert(d.error || "Không xóa được"); return; }
-    seen = new Set(); taiDon();
-  } catch(e){ alert("Lỗi mạng: " + e); }
-}
+veMenu();
+taiDon();
+setInterval(taiDon, 5000);
 </script>
 </body>
 </html>
