@@ -118,7 +118,7 @@
       <div id="menu"></div>
     </div>
 
-    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 3.0</div>
+    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 3.1</div>
   </div>
 </div>
 
@@ -136,13 +136,14 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== CONFIG ===== */
-const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+/* ===== CONFIG =====
+   Gọi proxy CÙNG TÊN MIỀN (file api/menu.js trên Vercel). Proxy mới gọi sang Google.
+   Vì trình duyệt chỉ gọi nội bộ nên không dính CORS / VPN. */
+const API = "/api/menu";
 
-/* Gọi Apps Script bằng POST JSON — giống ViệcNhà247 (không đặt Content-Type
-   để trình duyệt tự dùng text/plain, tránh CORS preflight) */
 async function jsonp(params) {
-  const res = await fetch(API, { method: "POST", body: JSON.stringify(params) });
+  const q = Object.entries(params).map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
+  const res = await fetch(API + "?" + q);
   return res.json();
 }
 
