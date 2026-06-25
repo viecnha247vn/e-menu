@@ -96,11 +96,11 @@
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+const API = "/api/menu";
 
-/* Gọi Apps Script bằng POST JSON — giống ViệcNhà247 */
 async function jsonp(params) {
-  const res = await fetch(API, { method: "POST", body: JSON.stringify(params) });
+  const q = Object.entries(params).map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
+  const res = await fetch(API + "?" + q);
   return res.json();
 }
 
