@@ -6,7 +6,7 @@
 <title>Quán Việt — Gọi món</title>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 110px; }
+  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 150px; }
   .wrap { max-width: 600px; margin: 0 auto; }
 
   header { position: sticky; top: 0; z-index: 10; background: #7A1F1F; color: #fff;
@@ -17,21 +17,30 @@
   .body { padding: 16px; }
   .banner { display: flex; justify-content: space-between; align-items: center;
     background: linear-gradient(135deg,#E8590C,#D9480F); color: #fff;
-    padding: 16px 20px; border-radius: 14px; margin-bottom: 14px; }
+    padding: 16px 20px; border-radius: 14px; margin-bottom: 12px; }
   .banner .lab { font-size: 12px; opacity: .85; }
   .banner .ban { font-size: 28px; font-weight: 900; }
   .banner .tong { font-size: 22px; font-weight: 800; }
+
+  .quick { display: flex; gap: 10px; margin-bottom: 14px; }
+  .quick button { flex: 1; padding: 13px; border: 1px solid #E7D9C5; background: #fff;
+    border-radius: 12px; font-size: 14px; font-weight: 700; color: #7A1F1F; cursor: pointer; }
+  .quick button:active { background: #F6EEE3; }
 
   .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px;
     box-shadow: 0 1px 4px rgba(0,0,0,.05); }
   .card h3 { font-size: 16px; margin-bottom: 12px; }
 
-  /* Tiến trình */
   .luot { border-left: 3px solid #F1DFC9; padding-left: 12px; margin-bottom: 16px; }
-  .luot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .luot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
   .luot-time { font-size: 12px; color: #999; }
   .mon-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
   .mon-row b { color: #E8590C; }
+  .note-row { font-size: 12px; color: #B0641E; background: #FFF4E6; padding: 5px 9px;
+    border-radius: 8px; margin-top: 6px; }
+  .sv-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+    color: #1864AB; background: #E7F0FA; padding: 8px 12px; border-radius: 10px; }
+  .sv-chip.done { color: #2B8A3E; background: #EBFBEE; }
 
   .steps { display: flex; align-items: center; margin-top: 10px; }
   .step { flex: 1; text-align: center; position: relative; }
@@ -48,7 +57,6 @@
     box-shadow: 0 0 0 4px rgba(232,89,12,.2); }
   .step.cur .txt { color: #E8590C; font-weight: 700; }
 
-  /* Thực đơn */
   .item { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #F2EDE5; }
   .item .ic { font-size: 26px; }
   .item .ten { font-weight: 700; font-size: 15px; }
@@ -61,13 +69,20 @@
   .so { font-weight: 800; min-width: 18px; text-align: center; }
 
   .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
-    background: #7A1F1F; color: #fff; padding: 14px 20px; display: none;
-    justify-content: space-between; align-items: center; box-shadow: 0 -2px 12px rgba(0,0,0,.2); }
+    background: #7A1F1F; color: #fff; padding: 12px 16px; display: none; flex-direction: column;
+    gap: 10px; box-shadow: 0 -2px 12px rgba(0,0,0,.2); }
   .giobar.show { display: flex; }
+  .giobar .note-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: none;
+    font-size: 14px; background: rgba(255,255,255,.15); color: #fff; }
+  .giobar .note-input::placeholder { color: rgba(255,255,255,.6); }
+  .giobar-row { display: flex; justify-content: space-between; align-items: center; }
   .giobar .gui { background: #E8590C; color: #fff; border: none; padding: 12px 22px;
     border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; }
 
-  .empty { color: #aaa; font-size: 14px; text-align: center; padding: 10px; }
+  .toast { position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%);
+    background: #2B8A3E; color: #fff; padding: 12px 22px; border-radius: 30px; font-weight: 700;
+    font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.25); opacity: 0; transition: .3s; z-index: 50; }
+  .toast.show { opacity: 1; bottom: 180px; }
 </style>
 </head>
 <body>
@@ -88,31 +103,41 @@
       </div>
     </div>
 
+    <div class="quick">
+      <button onclick="goiNhanVien()">📣 Gọi nhân viên</button>
+      <button onclick="xinTinhTien()">🧾 Xin tính tiền</button>
+    </div>
+
     <div class="card" id="cardDaGoi" style="display:none">
       <h3>📋 Tiến trình món đã gọi</h3>
       <div id="daGoi"></div>
     </div>
 
     <div class="card">
-      <h3>🍽️ Thực đơn — chạm + để chọn</h3>
+      <h3>🍽️ Thực đơn — chạm + để gọi thêm</h3>
       <div id="menu"></div>
     </div>
   </div>
 </div>
 
 <div class="giobar" id="giobar">
-  <div>
-    <div style="font-size:13px;opacity:.85" id="gioSL">0 món</div>
-    <div style="font-size:20px;font-weight:800" id="gioTong">0đ</div>
+  <input id="ghiChu" class="note-input" placeholder="Ghi chú cho bếp (vd: ít cay, không hành)…" maxlength="120">
+  <div class="giobar-row">
+    <div>
+      <div style="font-size:13px;opacity:.85" id="gioSL">0 món</div>
+      <div style="font-size:20px;font-weight:800" id="gioTong">0đ</div>
+    </div>
+    <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
   </div>
-  <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-/* ===== CONFIG — dán URL /exec của Google Apps Script vào đây ===== */
+/* ===== CONFIG ===== */
 const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
 
-/* Gọi Apps Script bằng JSONP (thẻ <script>) — không dính CORS */
+/* Gọi Apps Script bằng JSONP — không dính CORS */
 function jsonp(params) {
   return new Promise((resolve, reject) => {
     const cb = "cb" + Math.random().toString(36).slice(2);
@@ -127,7 +152,6 @@ function jsonp(params) {
   });
 }
 
-/* Số bàn lấy từ URL: ...khach.html?ban=05  (mỗi bàn 1 mã QR khác nhau) */
 const BAN = new URLSearchParams(location.search).get("ban") || "05";
 
 const MENU = [
@@ -144,14 +168,18 @@ const MENU = [
 ];
 const TT = { moi:0, dang_lam:1, xong:2 };
 const fmt = n => n.toLocaleString("vi-VN") + "đ";
-let gio = {}; // {id: soLuong}
+let gio = {};
 
 document.getElementById("banSo").textContent = "Bàn " + BAN;
 
-/* ---- Vẽ thực đơn ---- */
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
 function veMenu() {
-  const el = document.getElementById("menu");
-  el.innerHTML = MENU.map(m => `
+  document.getElementById("menu").innerHTML = MENU.map(m => `
     <div class="item">
       <span class="ic">${m.ic}</span>
       <div style="flex:1;min-width:0">
@@ -177,25 +205,48 @@ function veGio() {
   document.getElementById("gioTong").textContent = fmt(tong);
 }
 
-/* ---- Gửi món vào bếp ---- */
+/* Gửi món */
 async function guiDi() {
   const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return { ten:m.ten, gia:m.gia, soLuong:sl }; });
   if (!items.length) return;
+  const note = document.getElementById("ghiChu").value.trim();
   try {
-    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items) });
+    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
     if (!d.ok) { alert("Bếp báo lỗi: " + (d.error || "không rõ")); return; }
-    gio = {}; veMenu(); veGio();
+    gio = {}; document.getElementById("ghiChu").value = "";
+    veMenu(); veGio(); toast("Đã gửi vào bếp ✓");
     setTimeout(taiDon, 600);
   } catch(e){ alert("Gửi không được, kiểm tra mạng. " + e); }
 }
 
-/* ---- Tải đơn đã gọi (chỉ xem) ---- */
+/* Yêu cầu phục vụ */
+async function guiYeuCau(items, note, msg) {
+  try {
+    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
+    if (!d.ok) { alert("Lỗi: " + (d.error||"")); return; }
+    toast(msg); setTimeout(taiDon, 600);
+  } catch(e){ alert("Không gửi được, kiểm tra mạng. " + e); }
+}
+function goiNhanVien() {
+  guiYeuCau([{ ten:"📣 Gọi nhân viên", gia:0, soLuong:1 }], "", "Đã gọi nhân viên ✓");
+}
+function xinTinhTien() {
+  const tong = tinhTong(window._orders || []);
+  guiYeuCau([{ ten:"🧾 Xin tính tiền", gia:0, soLuong:1 }], "Tạm tính: " + fmt(tong), "Đã gửi yêu cầu tính tiền ✓");
+}
+
+function tinhTong(orders) {
+  return orders.reduce((s,o)=> s + o.items.reduce((a,i)=> a + (i.gia>0 ? i.gia*i.soLuong : 0), 0), 0);
+}
+
 async function taiDon() {
   try {
     const d = await jsonp({ action:"list", ban: BAN });
     if (!d.ok) return;
-    veTienTrinh(d.orders.sort((a,b)=>a.luc-b.luc));
-  } catch(e){ /* giữ nguyên màn hình cũ nếu lỗi mạng */ }
+    const orders = d.orders.sort((a,b)=>a.luc-b.luc);
+    window._orders = orders;
+    veTienTrinh(orders);
+  } catch(e){ /* giữ màn hình cũ nếu lỗi mạng */ }
 }
 
 function veTienTrinh(orders) {
@@ -203,27 +254,38 @@ function veTienTrinh(orders) {
   const box = document.getElementById("daGoi");
   if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; return; }
   card.style.display="block";
-  let tong = 0;
+
   box.innerHTML = orders.map(o => {
-    const sub = o.items.reduce((s,i)=>s+i.gia*i.soLuong,0); tong += sub;
-    const cur = TT[o.trangThai];
-    const buoc = [["📥","Đã nhận"],["🔥","Đang nấu"],["✅","Xong"]];
+    const isSV = o.items.every(i => i.gia === 0); // yêu cầu phục vụ
     const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+
+    if (isSV) {
+      const xong = o.trangThai === "xong";
+      return `<div class="luot">
+        <div class="luot-head"><span class="luot-time">${time}</span></div>
+        <span class="sv-chip ${xong?'done':''}">${o.items[0].ten} — ${xong ? "đã xử lý ✓" : "đang chờ…"}</span>
+      </div>`;
+    }
+
+    const cur = TT[o.trangThai] ?? 0;
+    const buoc = [["📥","Đã nhận"],["🔥","Đang nấu"],["✅","Xong"]];
     return `
       <div class="luot">
         <div class="luot-head"><span class="luot-time">${time}</span></div>
         ${o.items.map(i=>`<div class="mon-row"><span>${i.ten} <b>×${i.soLuong}</b></span><span>${fmt(i.gia*i.soLuong)}</span></div>`).join("")}
+        ${o.note ? `<div class="note-row">📝 ${o.note}</div>` : ``}
         <div class="steps">
           ${buoc.map((b,idx)=>`<div class="step ${idx<cur?'on':''} ${idx===cur?'cur':''}"><div class="dot">${idx<=cur?b[0]:idx+1}</div><div class="txt">${b[1]}</div></div>`).join("")}
         </div>
       </div>`;
   }).join("");
-  document.getElementById("tongDaGoi").textContent = fmt(tong);
+
+  document.getElementById("tongDaGoi").textContent = fmt(tinhTong(orders));
 }
 
 veMenu();
 taiDon();
-setInterval(taiDon, 5000); // tự cập nhật tiến trình mỗi 5 giây
+setInterval(taiDon, 5000);
 </script>
 </body>
 </html>

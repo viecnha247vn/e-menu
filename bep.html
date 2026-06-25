@@ -20,6 +20,16 @@
   .reset { background: transparent; border: 1px solid #5a4a3a; color: #E59866;
     padding: 7px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
 
+  /* Băng yêu cầu phục vụ */
+  .sv-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px 0; }
+  .sv-card { background: #4a3a12; border: 1px solid #f2c037; border-radius: 10px;
+    padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
+  .sv-card .txt { font-weight: 800; color: #ffe08a; }
+  .sv-card .ban { background: #f2c037; color: #2A2420; border-radius: 6px; padding: 1px 8px; font-weight: 900; }
+  .sv-card .note { font-size: 12px; color: #d9c9a0; }
+  .sv-card button { background: #2F9E44; color: #fff; border: none; padding: 8px 12px;
+    border-radius: 8px; font-weight: 700; cursor: pointer; }
+
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
   @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
 
@@ -42,6 +52,8 @@
   .t-time { font-size: 12px; color: #9c8d7d; }
   .t-mon { display: flex; gap: 8px; font-size: 16px; padding: 4px 0; }
   .t-mon b { color: #FFA94D; min-width: 30px; }
+  .t-note { font-size: 13px; color: #ffd8a8; background: #3a2c18; padding: 6px 9px;
+    border-radius: 7px; margin-top: 6px; }
   .act { width: 100%; color: #fff; border: none; padding: 11px; border-radius: 8px;
     font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; }
   .a-lam { background: #1971C2; }
@@ -69,10 +81,10 @@
       <button class="reset" onclick="xoaHet()">Xóa hết</button>
     </div>
   </header>
+  <div class="sv-bar" id="svBar"></div>
   <div class="grid" id="grid"></div>
 </div>
 
-<!-- Lớp PIN: bắt buộc nhập trước khi vào bếp -->
 <div class="pinbox" id="pinbox">
   <div class="panel">
     <h2>🔒 Trang bếp</h2>
@@ -84,10 +96,8 @@
 </div>
 
 <script>
-/* ===== CONFIG — dán cùng URL /exec như khach.html ===== */
 const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
 
-/* Gọi Apps Script bằng JSONP — không dính CORS */
 function jsonp(params) {
   return new Promise((resolve, reject) => {
     const cb = "cb" + Math.random().toString(36).slice(2);
@@ -102,36 +112,78 @@ function jsonp(params) {
   });
 }
 
-let PIN = ""; // nhập 1 lần ở màn hình khóa, gửi kèm mỗi lệnh đổi trạng thái
+let PIN = "";
+let audio = null;
+let seen = new Set();
+let firstLoad = true;
+
 const TT = {
-  moi:   { label:"Đơn mới",  cls:"h-moi",  tcls:"" },
+  moi:   { label:"Đơn mới",  cls:"h-moi", tcls:"" },
   dang_lam:{ label:"Đang làm", cls:"h-lam", tcls:"lam" },
   xong:  { label:"Đã xong",  cls:"h-xong", tcls:"xong" },
 };
 const fmt = n => n.toLocaleString("vi-VN") + "đ";
+const laYeuCau = o => o.items.every(i => i.gia === 0);
 
 function vaoBep() {
   const v = document.getElementById("pinInput").value.trim();
   if (!v) { document.getElementById("pinErr").textContent = "Nhập mã PIN"; return; }
   PIN = v;
+  try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
   document.getElementById("pinbox").style.display = "none";
   taiDon();
-  setInterval(taiDon, 4000); // tự nhận đơn mới mỗi 4 giây
+  setInterval(taiDon, 4000);
 }
 document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") vaoBep(); });
+
+/* Chuông báo đơn mới */
+function ting() {
+  if (!audio) return;
+  try {
+    [0, 0.16].forEach((t, k) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.connect(g); g.connect(audio.destination);
+      o.type = "sine"; o.frequency.value = k === 0 ? 880 : 1175;
+      g.gain.setValueAtTime(0.0001, audio.currentTime + t);
+      g.gain.exponentialRampToValueAtTime(0.25, audio.currentTime + t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + t + 0.14);
+      o.start(audio.currentTime + t); o.stop(audio.currentTime + t + 0.15);
+    });
+  } catch(e){}
+}
 
 async function taiDon() {
   try {
     const d = await jsonp({ action:"list" });
-    if (d.ok) ve(d.orders.sort((a,b)=>a.luc-b.luc));
-  } catch(e){ /* giữ màn hình cũ khi mạng chập chờn */ }
+    if (!d.ok) return;
+    const orders = d.orders.sort((a,b)=>a.luc-b.luc);
+    const coDonMoi = orders.some(o => !seen.has(o.id));
+    if (!firstLoad && coDonMoi) ting();
+    orders.forEach(o => seen.add(o.id));
+    firstLoad = false;
+    ve(orders);
+  } catch(e){ /* giữ màn hình cũ */ }
 }
 
 function ve(orders) {
+  // Băng yêu cầu phục vụ (chưa xử lý)
+  const yc = orders.filter(o => laYeuCau(o) && o.trangThai !== "xong");
+  document.getElementById("svBar").innerHTML = yc.map(o => `
+    <div class="sv-card">
+      <span class="ban">${o.ban}</span>
+      <div>
+        <div class="txt">${o.items[0].ten}</div>
+        ${o.note ? `<div class="note">${o.note}</div>` : ``}
+      </div>
+      <button onclick="doi('${o.id}','xong')">Đã xử lý ✓</button>
+    </div>`).join("");
+
+  // Cột món ăn (bỏ yêu cầu phục vụ ra khỏi 3 cột)
+  const mon = orders.filter(o => !laYeuCau(o));
   const cols = [
-    { key:"moi",     list: orders.filter(o=>o.trangThai==="moi") },
-    { key:"dang_lam",list: orders.filter(o=>o.trangThai==="dang_lam") },
-    { key:"xong",    list: orders.filter(o=>o.trangThai==="xong") },
+    { key:"moi",     list: mon.filter(o=>o.trangThai==="moi") },
+    { key:"dang_lam",list: mon.filter(o=>o.trangThai==="dang_lam") },
+    { key:"xong",    list: mon.filter(o=>o.trangThai==="xong") },
   ];
   document.getElementById("grid").innerHTML = cols.map(c => `
     <div class="col">
@@ -150,6 +202,7 @@ function ticket(o) {
     <div class="ticket ${TT[o.trangThai].tcls}">
       <div class="t-head"><span class="t-ban">${o.ban}</span><span class="t-time">${time}</span></div>
       ${o.items.map(i=>`<div class="t-mon"><b>×${i.soLuong}</b><span>${i.ten}</span></div>`).join("")}
+      ${o.note ? `<div class="t-note">📝 ${o.note}</div>` : ``}
       ${btn}
     </div>`;
 }
@@ -167,7 +220,7 @@ async function xoaHet() {
   try {
     const d = await jsonp({ action:"reset", pin:PIN });
     if (!d.ok) { alert(d.error || "Không xóa được"); return; }
-    taiDon();
+    seen = new Set(); taiDon();
   } catch(e){ alert("Lỗi mạng: " + e); }
 }
 </script>
