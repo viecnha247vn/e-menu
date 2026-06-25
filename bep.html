@@ -142,11 +142,10 @@ function ticket(o) {
 
 async function doi(id, trangThai) {
   try {
-    const r = await fetch(API, {
-      method:"POST",
-      headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body: JSON.stringify({ action:"update", id, trangThai, pin:PIN })
-    });
+    const url = API + "?action=update&id=" + encodeURIComponent(id)
+      + "&trangThai=" + encodeURIComponent(trangThai)
+      + "&pin=" + encodeURIComponent(PIN);
+    const r = await fetch(url);
     const d = await r.json();
     if (!d.ok) { alert(d.error || "Không đổi được"); return; }
     taiDon();
@@ -156,11 +155,8 @@ async function doi(id, trangThai) {
 async function xoaHet() {
   if (!confirm("Xóa toàn bộ đơn?")) return;
   try {
-    const r = await fetch(API, {
-      method:"POST",
-      headers:{ "Content-Type":"text/plain;charset=utf-8" },
-      body: JSON.stringify({ action:"reset", pin:PIN })
-    });
+    const url = API + "?action=reset&pin=" + encodeURIComponent(PIN);
+    const r = await fetch(url);
     const d = await r.json();
     if (!d.ok) { alert(d.error || "Không xóa được"); return; }
     taiDon();

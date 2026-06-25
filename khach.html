@@ -167,11 +167,11 @@ async function guiDi() {
   const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return { ten:m.ten, gia:m.gia, soLuong:sl }; });
   if (!items.length) return;
   try {
-    await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" }, // tránh CORS preflight
-      body: JSON.stringify({ action:"add", ban:BAN, items })
-    });
+    const url = API + "?action=add&ban=" + encodeURIComponent(BAN)
+      + "&items=" + encodeURIComponent(JSON.stringify(items));
+    const r = await fetch(url);
+    const d = await r.json();
+    if (!d.ok) { alert("Bếp báo lỗi: " + (d.error || "không rõ")); return; }
     gio = {}; veMenu(); veGio();
     setTimeout(taiDon, 600);
   } catch(e){ alert("Gửi không được, kiểm tra mạng. " + e); }
