@@ -118,7 +118,7 @@
       <div id="menu"></div>
     </div>
 
-    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 2.1</div>
+    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 2.2</div>
   </div>
 </div>
 
@@ -136,8 +136,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== CONFIG ===== */
-const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+/* ===== CONFIG =====
+   Gọi về proxy cùng tên miền (file api/menu.js trên Vercel) để tránh chặn chéo trang.
+   Nếu muốn quay lại gọi thẳng Apps Script, đổi thành URL /exec. */
+const API = "/api/menu";
 
 /* Kết nối Apps Script: thử fetch trước (chuẩn, hợp iOS Safari), lỗi mới quay về JSONP */
 function jsonpRaw(params) {
