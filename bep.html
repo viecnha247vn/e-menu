@@ -98,26 +98,18 @@
 <script>
 const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
 
-function jsonpRaw(params) {
-  return new Promise((resolve, reject) => {
-    const cb = "cb" + Math.random().toString(36).slice(2);
-    const s = document.createElement("script");
-    const timer = setTimeout(() => { cleanup(); reject(new Error("Hết thời gian chờ máy chủ")); }, 15000);
-    function cleanup(){ clearTimeout(timer); delete window[cb]; if (s.parentNode) s.remove(); }
-    window[cb] = (data) => { cleanup(); resolve(data); };
-    s.onerror = () => { cleanup(); reject(new Error("Không kết nối được máy chủ")); };
-    const q = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
-    s.src = API + "?" + q + "&cb=" + cb;
-    document.head.appendChild(s);
-  });
-}
+/* Gọi máy chủ ĐÚNG CÁCH ViệcNhà247: POST text/plain + JSON.stringify */
 async function jsonp(params) {
-  const q = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
   try {
-    const r = await fetch(API + "?" + q);
-    if (r.ok) return JSON.parse(await r.text());
-  } catch (e) {}
-  return jsonpRaw(params);
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(params)
+    });
+    return await res.json();
+  } catch (e) {
+    return { ok: false, error: "Lỗi kết nối mạng: " + e };
+  }
 }
 
 let PIN = "";
