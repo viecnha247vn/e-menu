@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tạo mã QR cho từng bàn — Quán Việt</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding: 20px; }
+  .wrap { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 20px; color: #7A1F1F; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: #888; margin-bottom: 18px; }
+
+  .panel { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05); display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+  .panel label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; font-weight: 600; }
+  .panel input { padding: 10px 12px; border: 1px solid #ddd; border-radius: 9px; font-size: 15px; width: 100%; }
+  .fld { flex: 1; min-width: 120px; }
+  .fld.url { flex: 100%; }
+  .btn { background: #E8590C; color: #fff; border: none; padding: 12px 22px; border-radius: 10px;
+    font-size: 15px; font-weight: 700; cursor: pointer; }
+  .btn.alt { background: #7A1F1F; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .card { background: #fff; border-radius: 12px; padding: 14px; text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); page-break-inside: avoid; }
+  .card .ban { font-size: 18px; font-weight: 900; color: #7A1F1F; margin-bottom: 8px; }
+  .card img { width: 100%; max-width: 170px; height: auto; }
+  .card .quan { font-size: 12px; color: #999; margin-top: 6px; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .panel, h1, .sub, .noprint { display: none !important; }
+    .grid { gap: 10px; }
+    .card { box-shadow: none; border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍜 Tạo mã QR cho từng bàn</h1>
+  <div class="sub">Nhập dải số bàn → bấm Tạo → bấm In. Khách quét QR bàn nào, đơn tự gắn đúng bàn đó.</div>
+
+  <div class="panel noprint">
+    <div class="fld url">
+      <label>Đường dẫn trang khách (đã có sẵn, đổi nếu cần)</label>
+      <input id="base" value="https://e-menu-ashen.vercel.app/khach.html">
+    </div>
+    <div class="fld">
+      <label>Tên quán (in dưới QR)</label>
+      <input id="ten" value="QUÁN VIỆT">
+    </div>
+    <div class="fld">
+      <label>Từ bàn số</label>
+      <input id="tu" type="number" value="1" min="1">
+    </div>
+    <div class="fld">
+      <label>Đến bàn số</label>
+      <input id="den" type="number" value="10" min="1">
+    </div>
+    <div class="fld" style="flex:0">
+      <button class="btn" onclick="tao()">Tạo QR</button>
+    </div>
+    <div class="fld" style="flex:0">
+      <button class="btn alt" onclick="window.print()">🖨️ In</button>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+function pad(n){ return String(n).padStart(2, "0"); }
+
+function tao() {
+  const base = document.getElementById("base").value.trim().replace(/\?.*$/, "");
+  const ten = document.getElementById("ten").value.trim();
+  const tu = parseInt(document.getElementById("tu").value) || 1;
+  const den = parseInt(document.getElementById("den").value) || tu;
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  if (den < tu) { alert("Số bàn 'đến' phải lớn hơn hoặc bằng 'từ'."); return; }
+  if (den - tu > 200) { alert("Tối đa 200 bàn một lần."); return; }
+
+  for (let i = tu; i <= den; i++) {
+    const so = pad(i);
+    const link = base + "?ban=" + so;
+    // Dùng dịch vụ tạo QR online, nhúng thẳng bằng <img>
+    const qr = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data="
+      + encodeURIComponent(link);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<div class="ban">' + ten + ' — Bàn ' + so + '</div>'
+      + '<img src="' + qr + '" alt="QR bàn ' + so + '">'
+      + '<div class="quan">Quét để gọi món</div>';
+    grid.appendChild(card);
+  }
+}
+
+tao(); // tạo sẵn 10 bàn khi mở trang
+</script>
+</body>
+</html>
