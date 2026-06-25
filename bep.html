@@ -97,6 +97,7 @@
     <div class="right">
       <span class="dot-live"></span><span style="font-size:12px;color:#9c8d7d">Trực tuyến</span>
       <div class="doanhthu">💰 Hôm nay: <b id="dtHomNay">0đ</b></div>
+      <button class="reset" id="btnChuong" onclick="toggleChuong()">🔔 Chuông: Bật</button>
       <button class="reset" onclick="xoaHet()">Xóa tất cả (cuối ngày)</button>
     </div>
   </header>
@@ -139,6 +140,13 @@ let PIN = "";
 let audio = null;
 let seen = new Set();
 let firstLoad = true;
+let chuongBat = true;
+
+function toggleChuong() {
+  chuongBat = !chuongBat;
+  document.getElementById("btnChuong").textContent = "🔔 Chuông: " + (chuongBat ? "Bật" : "Tắt");
+  if (chuongBat) ting(); // kêu thử khi bật
+}
 
 const TT = {
   moi:   { label:"Đơn mới",  cls:"h-moi", tcls:"" },
@@ -154,6 +162,7 @@ function vaoBep() {
   PIN = v;
   try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
   document.getElementById("pinbox").style.display = "none";
+  setTimeout(ting, 300); // kêu thử 1 tiếng để xác nhận loa đã bật
   taiDon();
   setInterval(taiDon, 4000);
 }
@@ -161,7 +170,7 @@ document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key=
 
 /* Chuông báo đơn mới */
 function ting() {
-  if (!audio) return;
+  if (!audio || !chuongBat) return;
   try {
     [0, 0.16].forEach((t, k) => {
       const o = audio.createOscillator(), g = audio.createGain();
@@ -269,7 +278,10 @@ async function dongBan(ban, tong) {
 }
 
 async function xoaHet() {
-  if (!confirm("Xóa toàn bộ đơn?")) return;
+  const ma = prompt("⚠️ XÓA TẤT CẢ đơn của mọi bàn (chỉ dùng cuối ngày).\nNhập mã PIN bếp để xác nhận:");
+  if (ma === null) return;                 // bấm Hủy
+  if (String(ma).trim() !== String(PIN)) { alert("Sai mã PIN. Không xóa."); return; }
+  if (!confirm("Chắc chắn xóa TẤT CẢ đơn hiện tại?")) return;
   try {
     const d = await jsonp({ action:"reset", pin:PIN });
     if (!d.ok) { alert(d.error || "Không xóa được"); return; }
