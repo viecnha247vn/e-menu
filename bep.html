@@ -30,6 +30,24 @@
   .sv-card button { background: #2F9E44; color: #fff; border: none; padding: 8px 12px;
     border-radius: 8px; font-weight: 700; cursor: pointer; }
 
+  /* Doanh thu hôm nay */
+  .doanhthu { display: flex; align-items: center; gap: 8px; background: #14331f;
+    border: 1px solid #2f7a4a; color: #8CE99A; padding: 6px 12px; border-radius: 10px; font-size: 13px; }
+  .doanhthu b { color: #b6f5c8; font-size: 16px; }
+
+  /* Dải bàn đang phục vụ */
+  .ban-bar { padding: 12px 16px 0; }
+  .ban-bar h3 { font-size: 13px; color: #9c8d7d; margin-bottom: 8px; font-weight: 700; }
+  .ban-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .ban-card { background: #2E2823; border: 1px solid #5a4a3a; border-radius: 10px;
+    padding: 10px 12px; min-width: 150px; }
+  .ban-card .bn { font-weight: 900; font-size: 16px; color: #FFA94D; }
+  .ban-card .meta { font-size: 12px; color: #9c8d7d; margin: 2px 0 8px; }
+  .ban-card .tong { font-weight: 800; font-size: 15px; color: #fff; }
+  .ban-card .pay { width: 100%; margin-top: 8px; background: #2F9E44; color: #fff; border: none;
+    padding: 9px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+  .ban-empty { color: #6b5d4f; font-size: 13px; }
+
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
   @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
 
@@ -78,10 +96,15 @@
     <h1>👨‍🍳 Màn hình bếp <span style="color:#9c8d7d;font-size:13px;font-weight:400">— KDS</span></h1>
     <div class="right">
       <span class="dot-live"></span><span style="font-size:12px;color:#9c8d7d">Trực tuyến</span>
-      <button class="reset" onclick="xoaHet()">Xóa hết</button>
+      <div class="doanhthu">💰 Hôm nay: <b id="dtHomNay">0đ</b></div>
+      <button class="reset" onclick="xoaHet()">Xóa tất cả (cuối ngày)</button>
     </div>
   </header>
   <div class="sv-bar" id="svBar"></div>
+  <div class="ban-bar">
+    <h3>🍽️ BÀN ĐANG PHỤC VỤ — bấm để tính tiền &amp; dọn bàn</h3>
+    <div class="ban-list" id="banList"></div>
+  </div>
   <div class="grid" id="grid"></div>
 </div>
 
@@ -156,6 +179,8 @@ async function taiDon() {
   try {
     const d = await jsonp({ action:"list" });
     if (!d.ok) return;
+    if (d.doanhThu) document.getElementById("dtHomNay").textContent =
+      fmt(d.doanhThu.tong) + " · " + d.doanhThu.soBan + " bàn";
     const orders = d.orders.sort((a,b)=>a.luc-b.luc);
     const coDonMoi = orders.some(o => !seen.has(o.id));
     if (!firstLoad && coDonMoi) ting();
@@ -177,6 +202,25 @@ function ve(orders) {
       </div>
       <button onclick="doi('${o.id}','xong')">Đã xử lý ✓</button>
     </div>`).join("");
+
+  // Dải BÀN ĐANG PHỤC VỤ: gộp theo bàn, cộng tiền món (bỏ yêu cầu phục vụ giá 0)
+  const banMap = {};
+  orders.forEach(o => {
+    if (!banMap[o.ban]) banMap[o.ban] = { ban: o.ban, tong: 0, soMon: 0, chuaXong: 0 };
+    o.items.forEach(i => {
+      if (i.gia > 0) { banMap[o.ban].tong += i.gia * i.soLuong; banMap[o.ban].soMon += i.soLuong; }
+    });
+    if (o.trangThai !== "xong" && !laYeuCau(o)) banMap[o.ban].chuaXong++;
+  });
+  const dsBan = Object.values(banMap).filter(b => b.soMon > 0).sort((a,b)=>String(a.ban).localeCompare(String(b.ban)));
+  const banList = document.getElementById("banList");
+  banList.innerHTML = dsBan.length ? dsBan.map(b => `
+    <div class="ban-card">
+      <div class="bn">Bàn ${b.ban}</div>
+      <div class="meta">${b.soMon} món${b.chuaXong ? ` · còn ${b.chuaXong} lượt chưa xong` : ` · đã xong hết`}</div>
+      <div class="tong">${fmt(b.tong)}</div>
+      <button class="pay" onclick="dongBan('${b.ban}', ${b.tong})">✓ Thanh toán &amp; dọn bàn</button>
+    </div>`).join("") : `<div class="ban-empty">Chưa có bàn nào đang phục vụ.</div>`;
 
   // Cột món ăn (bỏ yêu cầu phục vụ ra khỏi 3 cột)
   const mon = orders.filter(o => !laYeuCau(o));
@@ -211,6 +255,15 @@ async function doi(id, trangThai) {
   try {
     const d = await jsonp({ action:"update", id, trangThai, pin:PIN });
     if (!d.ok) { alert(d.error || "Không đổi được"); return; }
+    taiDon();
+  } catch(e){ alert("Lỗi mạng: " + e); }
+}
+
+async function dongBan(ban, tong) {
+  if (!confirm("Đóng Bàn " + ban + "?\nTổng " + fmt(tong) + " sẽ được cộng vào doanh thu hôm nay, và đơn của bàn này sẽ được xóa để đón khách mới.")) return;
+  try {
+    const d = await jsonp({ action:"close_table", ban:ban, pin:PIN });
+    if (!d.ok) { alert(d.error || "Không đóng được bàn"); return; }
     taiDon();
   } catch(e){ alert("Lỗi mạng: " + e); }
 }
