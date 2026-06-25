@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản trị thực đơn — Quán Việt</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 40px; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+  header { background: #7A1F1F; color: #fff; padding: 14px 18px; }
+  header .logo { font-size: 20px; font-weight: 900; }
+  header .tag { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 2px; }
+
+  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  h3 { font-size: 16px; margin-bottom: 12px; }
+  label { display: block; font-size: 12px; color: #666; font-weight: 600; margin: 10px 0 4px; }
+  input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 9px; font-size: 15px; font-family: inherit; }
+  textarea { resize: vertical; min-height: 52px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 120px; }
+
+  .btn { background: #E8590C; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .btn.ghost { background: #fff; color: #7A1F1F; border: 1px solid #ddd; }
+  .btn.sm { padding: 8px 14px; font-size: 13px; }
+  .btn.del { background: #fff; color: #C92A2A; border: 1px solid #f0c5c5; }
+  .btn.row-actions { margin-top: 0; }
+
+  .preview { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 1px solid #eee; background: #f4f0ea; }
+  .photoWrap { display: flex; gap: 12px; align-items: center; }
+
+  .item { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #F2EDE5; }
+  .item:last-child { border-bottom: none; }
+  .item .thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: #f4f0ea; display: flex; align-items: center; justify-content: center; font-size: 28px; flex: none; }
+  .item .info { flex: 1; min-width: 0; }
+  .item .ten { font-weight: 700; }
+  .item .gia { color: #E8590C; font-weight: 700; font-size: 14px; }
+  .item .mota { font-size: 12px; color: #999; }
+  .item.an { opacity: .5; }
+  .item .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #EBFBEE; color: #2B8A3E; }
+  .pill.off { background: #F1F0EE; color: #999; }
+
+  .pinbox { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+  .pinbox .panel { background: #fff; padding: 26px; border-radius: 16px; width: 320px; text-align: center; }
+  .pinbox input { text-align: center; letter-spacing: 2px; margin: 14px 0; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2B8A3E; color: #fff; padding: 12px 22px; border-radius: 30px; font-weight: 700; font-size: 14px; opacity: 0; transition: .3s; z-index: 50; }
+  .toast.show { opacity: 1; }
+  .muted { font-size: 12px; color: #999; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">QUÁN VIỆT</div>
+  <div class="tag">Quản trị thực đơn</div>
+</header>
+
+<div class="wrap" id="app" style="display:none">
+  <!-- Form thêm/sửa -->
+  <div class="card">
+    <h3 id="formTitle">➕ Thêm món mới</h3>
+    <input type="hidden" id="fId">
+    <label>Tên món *</label>
+    <input id="fTen" placeholder="VD: Phở bò tái">
+    <div class="row">
+      <div>
+        <label>Giá (đ) *</label>
+        <input id="fGia" type="number" inputmode="numeric" placeholder="55000">
+      </div>
+      <div>
+        <label>Biểu tượng (emoji, dùng khi không có ảnh)</label>
+        <input id="fIcon" placeholder="🍜" maxlength="4">
+      </div>
+    </div>
+    <label>Mô tả</label>
+    <textarea id="fMota" placeholder="Bánh phở, thịt bò tái, hành ngò"></textarea>
+    <label>Ảnh món (tùy chọn — máy sẽ tự thu nhỏ ảnh)</label>
+    <div class="photoWrap">
+      <img id="fPreview" class="preview" alt="">
+      <div>
+        <input id="fFile" type="file" accept="image/*" onchange="chonAnh(event)">
+        <div class="muted" id="anhTrangThai"></div>
+      </div>
+    </div>
+    <label><input type="checkbox" id="fHien" checked style="width:auto"> Hiện món này cho khách</label>
+    <div style="margin-top:14px; display:flex; gap:10px">
+      <button class="btn" onclick="luuMon()" id="btnLuu">Lưu món</button>
+      <button class="btn ghost" onclick="resetForm()">Làm mới</button>
+    </div>
+  </div>
+
+  <!-- Danh sách -->
+  <div class="card">
+    <h3>📋 Danh sách món (<span id="dem">0</span>)</h3>
+    <div id="ds"></div>
+  </div>
+</div>
+
+<!-- Đăng nhập -->
+<div class="pinbox" id="pinbox">
+  <div class="panel">
+    <h3>🔒 Quản trị thực đơn</h3>
+    <p class="muted">Nhập mật khẩu quản trị để vào</p>
+    <input id="pass" type="password" placeholder="Mật khẩu">
+    <div class="muted" id="passErr" style="color:#C92A2A;min-height:16px"></div>
+    <button class="btn" style="width:100%" onclick="dangNhap()">Vào quản trị</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+let PASS = "";
+let anhData = "";   // base64 ảnh mới (nếu có)
+let menu = [];
+
+async function jsonp(params) {
+  try {
+    const res = await fetch(API, { method:"POST", headers:{ "Content-Type":"text/plain;charset=utf-8" }, body: JSON.stringify(params) });
+    return await res.json();
+  } catch (e) { return { ok:false, error:"Lỗi kết nối mạng: " + e }; }
+}
+const fmt = n => (Number(n)||0).toLocaleString("vi-VN") + "đ";
+function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); }
+
+async function dangNhap() {
+  const v = document.getElementById("pass").value.trim();
+  if (!v) return;
+  // thử lưu/đọc nhẹ để xác thực: gọi menu_list (công khai) rồi kiểm pass khi lưu.
+  // Ở đây xác thực bằng cách thử 1 lệnh cần pass an toàn: menu_save sẽ báo sai nếu sai pass.
+  PASS = v;
+  document.getElementById("pinbox").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  taiMenu();
+}
+document.getElementById("pass").addEventListener("keydown", e=>{ if(e.key==="Enter") dangNhap(); });
+
+async function taiMenu() {
+  const d = await jsonp({ action:"menu_list", all:true });
+  if (!d.ok) { toast("Lỗi tải menu"); return; }
+  menu = d.menu || [];
+  veDS();
+}
+
+function veDS() {
+  document.getElementById("dem").textContent = menu.length;
+  document.getElementById("ds").innerHTML = menu.map(m => `
+    <div class="item ${m.hien ? "" : "an"}">
+      <div class="thumb">${m.anh ? `<img src="${m.anh}" style="width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.parentNode.textContent='${m.icon||"🍽️"}'>` : (m.icon||"🍽️")}</div>
+      <div class="info">
+        <div class="ten">${m.ten} <span class="pill ${m.hien?"":"off"}">${m.hien?"Đang hiện":"Đang ẩn"}</span></div>
+        <div class="gia">${fmt(m.gia)}</div>
+        <div class="mota">${m.mota||""}</div>
+      </div>
+      <div class="acts">
+        <button class="btn sm ghost" onclick='suaMon(${JSON.stringify(JSON.stringify(m))})'>Sửa</button>
+        <button class="btn sm ghost" onclick="anHien('${m.id}', ${m.hien})">${m.hien?"Ẩn":"Hiện"}</button>
+        <button class="btn sm del" onclick="xoaMon('${m.id}','${(m.ten||'').replace(/'/g,'')}')">Xóa</button>
+      </div>
+    </div>`).join("") || '<div class="muted">Chưa có món nào.</div>';
+}
+
+// Thu nhỏ ảnh trước khi upload (đỡ nặng, nhanh)
+function chonAnh(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  document.getElementById("anhTrangThai").textContent = "Đang xử lý ảnh…";
+  const img = new Image(); const reader = new FileReader();
+  reader.onload = e => img.src = e.target.result;
+  img.onload = () => {
+    const maxW = 700, scale = Math.min(1, maxW / img.width);
+    const w = Math.round(img.width*scale), h = Math.round(img.height*scale);
+    const c = document.createElement("canvas"); c.width=w; c.height=h;
+    c.getContext("2d").drawImage(img, 0, 0, w, h);
+    anhData = c.toDataURL("image/jpeg", 0.72);
+    document.getElementById("fPreview").src = anhData;
+    document.getElementById("anhTrangThai").textContent = "Đã chọn ảnh ✓";
+  };
+  img.onerror = () => document.getElementById("anhTrangThai").textContent = "Ảnh lỗi, chọn ảnh khác.";
+  reader.readAsDataURL(file);
+}
+
+function resetForm() {
+  document.getElementById("formTitle").textContent = "➕ Thêm món mới";
+  document.getElementById("fId").value = "";
+  document.getElementById("fTen").value = "";
+  document.getElementById("fGia").value = "";
+  document.getElementById("fIcon").value = "";
+  document.getElementById("fMota").value = "";
+  document.getElementById("fHien").checked = true;
+  document.getElementById("fFile").value = "";
+  document.getElementById("fPreview").src = "";
+  document.getElementById("anhTrangThai").textContent = "";
+  anhData = "";
+}
+
+function suaMon(mJson) {
+  const m = JSON.parse(mJson);
+  document.getElementById("formTitle").textContent = "✏️ Sửa: " + m.ten;
+  document.getElementById("fId").value = m.id;
+  document.getElementById("fTen").value = m.ten;
+  document.getElementById("fGia").value = m.gia;
+  document.getElementById("fIcon").value = m.icon || "";
+  document.getElementById("fMota").value = m.mota || "";
+  document.getElementById("fHien").checked = !!m.hien;
+  document.getElementById("fPreview").src = m.anh || "";
+  document.getElementById("anhTrangThai").textContent = m.anh ? "Đang dùng ảnh cũ (chọn ảnh mới nếu muốn đổi)" : "";
+  anhData = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function luuMon() {
+  const ten = document.getElementById("fTen").value.trim();
+  const gia = Number(document.getElementById("fGia").value) || 0;
+  if (!ten) { toast("Nhập tên món"); return; }
+  if (gia <= 0) { toast("Nhập giá hợp lệ"); return; }
+  const btn = document.getElementById("btnLuu");
+  btn.disabled = true; btn.textContent = "Đang lưu…";
+  const payload = {
+    action: "menu_save", adminPass: PASS,
+    id: document.getElementById("fId").value || undefined,
+    ten: ten, gia: gia,
+    icon: document.getElementById("fIcon").value.trim() || "🍽️",
+    mota: document.getElementById("fMota").value.trim(),
+    hien: document.getElementById("fHien").checked
+  };
+  if (anhData) payload.anhData = anhData;
+  const d = await jsonp(payload);
+  btn.disabled = false; btn.textContent = "Lưu món";
+  if (!d.ok) { toast(d.error || "Lưu lỗi"); return; }
+  toast("Đã lưu món ✓");
+  resetForm();
+  taiMenu();
+}
+
+async function anHien(id, dangHien) {
+  const m = menu.find(x => x.id === id); if (!m) return;
+  const d = await jsonp({ action:"menu_save", adminPass:PASS, id:id, ten:m.ten, gia:m.gia, icon:m.icon, mota:m.mota, hien: !dangHien, anh: m.anh });
+  if (!d.ok) { toast(d.error || "Lỗi"); return; }
+  taiMenu();
+}
+
+async function xoaMon(id, ten) {
+  if (!confirm('Xóa món "' + ten + '"? Không thể hoàn tác.')) return;
+  const d = await jsonp({ action:"menu_delete", adminPass:PASS, id:id });
+  if (!d.ok) { toast(d.error || "Xóa lỗi"); return; }
+  toast("Đã xóa ✓");
+  taiMenu();
+}
+</script>
+</body>
+</html>

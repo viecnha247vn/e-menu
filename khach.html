@@ -59,6 +59,7 @@
 
   .item { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #F2EDE5; }
   .item .ic { font-size: 26px; }
+  .item .ic-img { width: 52px; height: 52px; border-radius: 9px; object-fit: cover; flex: none; background: #f2ede5; }
   .item .ten { font-weight: 700; font-size: 15px; }
   .item .mota { font-size: 12px; color: #999; margin: 2px 0; }
   .item .gia { font-size: 14px; font-weight: 700; color: #E8590C; }
@@ -118,7 +119,7 @@
       <div id="menu"></div>
     </div>
 
-    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 4.0</div>
+    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 5.0</div>
   </div>
 </div>
 
@@ -155,18 +156,7 @@ async function jsonp(params) {
 
 const BAN = new URLSearchParams(location.search).get("ban") || "05";
 
-const MENU = [
-  { id:"m1", ten:"Phở bò tái", gia:55000, mota:"Bánh phở, thịt bò tái, hành ngò", ic:"🍜" },
-  { id:"m2", ten:"Bún bò Huế", gia:60000, mota:"Bún, giò heo, chả, sa tế", ic:"🌶️" },
-  { id:"m3", ten:"Cơm tấm sườn", gia:50000, mota:"Sườn nướng, bì, chả, trứng", ic:"🍚" },
-  { id:"m4", ten:"Bánh mì thịt", gia:25000, mota:"Pa-tê, thịt nguội, đồ chua", ic:"🥖" },
-  { id:"m5", ten:"Gỏi cuốn (2 cuốn)", gia:30000, mota:"Tôm, thịt, bún, rau sống", ic:"🥗" },
-  { id:"m6", ten:"Chả giò (4 cuốn)", gia:35000, mota:"Nem rán giòn, nước mắm chua ngọt", ic:"🥟" },
-  { id:"m7", ten:"Bún chả Hà Nội", gia:55000, mota:"Chả nướng, bún, nước chấm", ic:"🍢" },
-  { id:"m8", ten:"Hủ tiếu Nam Vang", gia:50000, mota:"Tôm, thịt bằm, gan, trứng cút", ic:"🍲" },
-  { id:"m9", ten:"Cà phê sữa đá", gia:20000, mota:"Cà phê phin, sữa đặc, đá", ic:"☕" },
-  { id:"m10", ten:"Trà đá", gia:5000, mota:"Trà đá mát lạnh", ic:"🧊" },
-];
+let MENU = [];   // nạp động từ máy chủ (chủ quán quản lý trong trang admin)
 const TT = { moi:0, dang_lam:1, xong:2 };
 const fmt = n => n.toLocaleString("vi-VN") + "đ";
 let gio = {};
@@ -179,13 +169,23 @@ function toast(msg) {
   setTimeout(() => t.classList.remove("show"), 2200);
 }
 
+async function taiMenu() {
+  const d = await jsonp({ action:"menu_list" });
+  if (d.ok && d.menu) MENU = d.menu;
+  veMenu();
+}
+
 function veMenu() {
-  document.getElementById("menu").innerHTML = MENU.map(m => `
+  const box = document.getElementById("menu");
+  if (!MENU.length) { box.innerHTML = `<div style="text-align:center;color:#bbb;padding:20px">Đang tải thực đơn…</div>`; return; }
+  box.innerHTML = MENU.map(m => `
     <div class="item">
-      <span class="ic">${m.ic}</span>
+      ${m.anh
+        ? `<img class="ic-img" src="${m.anh}" alt="" onerror="this.outerHTML='<span class=\\'ic\\'>${m.icon||'🍽️'}</span>'">`
+        : `<span class="ic">${m.icon || m.ic || '🍽️'}</span>`}
       <div style="flex:1;min-width:0">
         <div class="ten">${m.ten}</div>
-        <div class="mota">${m.mota}</div>
+        <div class="mota">${m.mota || ''}</div>
         <div class="gia">${fmt(m.gia)}</div>
       </div>
       <div class="stepper">
@@ -284,7 +284,7 @@ function veTienTrinh(orders) {
   document.getElementById("tongDaGoi").textContent = fmt(tinhTong(orders));
 }
 
-veMenu();
+taiMenu();
 taiDon();
 setInterval(taiDon, 5000);
 </script>
