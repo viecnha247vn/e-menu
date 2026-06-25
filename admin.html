@@ -231,7 +231,8 @@ async function luuMon() {
   const d = await jsonp(payload);
   btn.disabled = false; btn.textContent = "Lưu món";
   if (!d.ok) { toast(d.error || "Lưu lỗi"); return; }
-  toast("Đã lưu món ✓");
+  if (d.anhLoi) { alert("Món đã lưu, NHƯNG ảnh chưa vào được:\n\n" + d.anhLoi + "\n\nXem hướng dẫn cấp quyền Drive."); }
+  else { toast("Đã lưu món ✓"); }
   resetForm();
   taiMenu();
 }
