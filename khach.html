@@ -201,6 +201,31 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 3px 10px rgba(122,26,26,.08); }
   .ve-menu:active { background: linear-gradient(180deg,#F4ECDD,#EFE6D4); }
 
+  /* Ô đặt tên người gọi */
+  .ten-chip { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: -6px 0 16px;
+    padding: 9px 14px; border-radius: 11px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--do);
+    background: rgba(255,255,255,.62); border: 1px solid rgba(200,162,75,.42); }
+  .ten-chip:active { background: rgba(255,255,255,.8); }
+  .ten-chip .ten-edit { color: var(--dong); font-size: 12px; }
+
+  /* Chia đều trong modal thanh toán */
+  .pay-split { margin: 4px 0 14px; }
+  .ps-lab { font-size: 12.5px; color: var(--muc-nhat); font-weight: 600; margin-bottom: 8px; }
+  .ps-btns { display: flex; gap: 8px; }
+  .ps-btn { flex: 1; padding: 9px 4px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+    color: var(--do); background: linear-gradient(180deg,#fff,#F4ECDD); border: 1px solid rgba(200,162,75,.45); }
+  .ps-btn.on { color: #fff; background: linear-gradient(180deg,var(--do-sang),var(--do)); border-color: var(--do);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+  .ps-each { text-align: center; font-size: 14px; font-weight: 700; color: var(--do); margin-top: 11px; }
+
+  /* Chia theo người trong phiếu */
+  .r-split-tit { font-weight: 800; font-size: 13px; color: var(--do); text-align: center; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
+  .r-person { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+  .r-person .rp-ten { flex: 1; font-weight: 600; color: var(--muc); }
+  .r-person .rp-sub { font-weight: 700; color: var(--muc); white-space: nowrap; }
+  .r-person .rp-pay { flex: none; padding: 6px 13px; border-radius: 9px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    color: #fff; border: none; background: linear-gradient(180deg,var(--do-sang),var(--do)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+
   /* ===== Giỏ — thanh dưới sơn mài bóng ===== */
   .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
     padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); display: none; flex-direction: column; gap: 11px; z-index: 30;
@@ -314,7 +339,12 @@
 
     <div class="quick">
       <button onclick="goiNhanVien()">Gọi nhân viên</button>
-      <button onclick="moPay()">Thanh toán</button>
+      <button onclick="moPayBan()">Thanh toán</button>
+    </div>
+
+    <div class="ten-chip" id="tenChip" onclick="moTenModal()">
+      <span id="tenLabel">👤 Thêm tên để chia hoá đơn</span>
+      <span class="ten-edit">✎ Sửa</span>
     </div>
 
     <div class="card">
@@ -330,7 +360,7 @@
       <button class="ve-menu" onclick="quayVeMenu()">↑ Quay về thực đơn</button>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.4</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.5</div>
   </div>
 </div>
 
@@ -351,13 +381,30 @@
 <div class="modal" id="modalPay" onclick="if(event.target===this)dongPay()">
   <div class="sheet">
     <div class="sheet-grab"></div>
-    <h3 class="sec">Thanh toán</h3>
+    <h3 class="sec" id="payTitle">Thanh toán</h3>
     <p class="sec-sub">Quét mã bằng app ngân hàng để chuyển khoản</p>
     <div class="pay-total">Tổng cần thanh toán<b id="payTong">0đ</b></div>
+    <div class="pay-split" id="paySplit" style="display:none">
+      <div class="ps-lab">Chia đều cho:</div>
+      <div class="ps-btns" id="psBtns"></div>
+      <div class="ps-each" id="psEach"></div>
+    </div>
     <div id="payQR"></div>
     <button class="pay-act" onclick="baoTinhTien()">Báo nhân viên ra tính tiền</button>
     <button class="btn-close" onclick="dongPay()">Đóng</button>
   </div>
+</div>
+
+<div class="modal" id="modalTen" onclick="if(event.target===this)dongTen()">
+  <div class="sheet">
+    <div class="sheet-grab"></div>
+    <h3 class="sec">Tên của bạn</h3>
+    <p class="sec-sub">Dùng để chia hoá đơn theo từng người. Có thể bỏ trống nếu trả gộp.</p>
+    <input id="tenInput" class="hd-input" type="text" maxlength="20" placeholder="VD: An, Bình, Ghế 1…">
+    <button class="pay-act" onclick="luuTen()">Lưu tên</button>
+    <button class="btn-close" onclick="dongTen()">Đóng</button>
+  </div>
+</div>
 </div>
 
 <div class="modal" id="modalDone" onclick="if(event.target===this)dongDone()">
@@ -495,7 +542,7 @@ async function guiDi() {
   gio = {}; document.getElementById("ghiChu").value = "";
   veMenu(); veGio(); toast("Đã gửi vào bếp ✓");   // hiện ngay, không chờ máy chủ
   try {
-    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
+    const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note, nguoi: TEN_TOI });
     if (!d.ok) throw new Error(d.error || "không rõ");
     setTimeout(taiDon, 600);
   } catch(e){
@@ -519,23 +566,62 @@ function goiNhanVien() {
   guiYeuCauNgam([{ ten:"📣 Gọi nhân viên", gia:0, soLuong:1 }], "");
 }
 
+/* ===== Tên người gọi (để chia hoá đơn) ===== */
+let TEN_TOI = "";
+try { TEN_TOI = localStorage.getItem("emenu_ten_" + BAN) || ""; } catch(e){}
+function veTenChip() {
+  const el = document.getElementById("tenLabel");
+  if (el) el.textContent = TEN_TOI ? ("👤 " + TEN_TOI) : "👤 Thêm tên để chia hoá đơn";
+}
+function moTenModal() { document.getElementById("tenInput").value = TEN_TOI; document.getElementById("modalTen").classList.add("show"); }
+function dongTen() { document.getElementById("modalTen").classList.remove("show"); }
+function luuTen() {
+  TEN_TOI = document.getElementById("tenInput").value.trim().slice(0, 20);
+  try { localStorage.setItem("emenu_ten_" + BAN, TEN_TOI); } catch(e){}
+  veTenChip(); dongTen();
+  if (TEN_TOI) toast("Đã lưu tên: " + TEN_TOI);
+}
+
 /* ===== Thanh toán VietQR ===== */
 let CAUHINH = null;
 async function taiCauHinh() {
   const d = await jsonp({ action:"cau_hinh" });
   if (d && d.ok) CAUHINH = d;
 }
-function moPay() {
-  rung(20);
+let payBase = 0, payInfo = "", payAllow = false, paySoNguoi = 1;
+function moPayBan() {
   const tong = tinhTong(window._orders || []);
   if (tong <= 0) { toast("Chưa có món nào để thanh toán"); return; }
-  document.getElementById("payTong").textContent = fmt(tong);
+  moPay(tong, "Ban " + BAN, true, "Thanh toán cả bàn");
+}
+function moPay(amount, info, allowSplit, title) {
+  rung(20);
+  payBase = amount; payInfo = info; payAllow = !!allowSplit; paySoNguoi = 1;
+  document.getElementById("payTitle").textContent = title || "Thanh toán";
+  const ps = document.getElementById("paySplit");
+  if (payAllow) {
+    ps.style.display = "block";
+    document.getElementById("psBtns").innerHTML = [1,2,3,4,5].map(n =>
+      `<button class="ps-btn ${n===1?'on':''}" data-n="${n}" onclick="chonChia(${n})">${n===1?'Cả bàn':n}</button>`).join("");
+  } else ps.style.display = "none";
+  veQR();
+  document.getElementById("modalPay").classList.add("show");
+}
+function chonChia(n) {
+  paySoNguoi = n; rung(10);
+  document.querySelectorAll("#psBtns .ps-btn").forEach(b => b.classList.toggle("on", Number(b.dataset.n) === n));
+  veQR();
+}
+function veQR() {
+  const each = paySoNguoi > 1 ? Math.round(payBase / paySoNguoi) : payBase;
+  const info = paySoNguoi > 1 ? (payInfo + " chia " + paySoNguoi) : payInfo;
+  document.getElementById("payTong").textContent = fmt(payBase);
+  document.getElementById("psEach").textContent = paySoNguoi > 1 ? ("Mỗi người chuyển: " + fmt(each)) : "";
   const box = document.getElementById("payQR");
   const b = CAUHINH && CAUHINH.bank ? CAUHINH.bank : null;
   if (b && b.nh && b.stk) {
-    const noiDung = "Ban " + BAN;
     const url = "https://img.vietqr.io/image/" + encodeURIComponent(b.nh) + "-" + encodeURIComponent(b.stk)
-      + "-compact2.png?amount=" + tong + "&addInfo=" + encodeURIComponent(noiDung)
+      + "-compact2.png?amount=" + each + "&addInfo=" + encodeURIComponent(info)
       + "&accountName=" + encodeURIComponent(b.ten || "");
     box.innerHTML =
       `<img class="qr" src="${url}" alt="VietQR" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'qr-note',textContent:'Không tải được mã QR, kiểm tra mạng.'}))">
@@ -544,11 +630,15 @@ function moPay() {
          <div class="stk">${esc(b.stk)}</div>
          <div>${esc(b.nh)}</div>
        </div>
-       <div class="qr-note">Nội dung chuyển khoản: <b>Ban ${esc(BAN)}</b><br>Chuyển xong, nhân viên sẽ xác nhận và dọn bàn.</div>`;
+       <div class="qr-note">Nội dung: <b>${esc(info)}</b>${paySoNguoi>1 ? "<br>Mỗi người quét và chuyển <b>"+fmt(each)+"</b>" : ""}<br>Chuyển xong, nhân viên sẽ xác nhận và dọn bàn.</div>`;
   } else {
     box.innerHTML = `<div class="qr-note">Quán chưa cài mã QR chuyển khoản.<br>Bấm nút dưới để nhân viên ra tính tiền giúp bạn.</div>`;
   }
-  document.getElementById("modalPay").classList.add("show");
+}
+function traPhan(i) {
+  const c = (window._chia || [])[i];
+  if (!c) return;
+  moPay(c.sub, "Ban " + BAN + " " + c.info, false, "Phần của " + c.ten);
 }
 function dongPay() { document.getElementById("modalPay").classList.remove("show"); }
 function baoTinhTien() {
@@ -629,6 +719,29 @@ function veTienTrinh(orders) {
     `<div class="r-cols"><span class="c-ten">${esc(i.ten)}</span><span class="c-sl">${i.sl}</span><span class="c-pr">${fmt(i.gia*i.sl)}</span></div>`
   ).join("");
 
+  // Chia theo người (dựa vào tên gắn lúc gọi món)
+  const theoNguoi = new Map();
+  let khuyetTen = 0;
+  orders.forEach(o => {
+    if (laSV(o)) return;
+    const sub = o.items.reduce((s,i)=> s + (i.gia>0 ? i.gia*i.soLuong : 0), 0);
+    if (!sub) return;
+    const ng = (o.nguoi || "").trim();
+    if (ng) theoNguoi.set(ng, (theoNguoi.get(ng) || 0) + sub);
+    else khuyetTen += sub;
+  });
+  window._chia = [];
+  let splitHTML = "";
+  if (theoNguoi.size >= 2) {
+    [...theoNguoi.entries()].forEach(([ten,sub]) => window._chia.push({ ten, info: ten, sub }));
+    if (khuyetTen > 0) window._chia.push({ ten:"Chưa ghi tên", info:"khach", sub: khuyetTen });
+    splitHTML =
+      `<div class="r-rule"></div><div class="r-split-tit">Chia theo người</div>` +
+      window._chia.map((c,idx) =>
+        `<div class="r-person"><span class="rp-ten">${esc(c.ten)}</span><span class="rp-sub">${fmt(c.sub)}</span><button class="rp-pay" onclick="traPhan(${idx})">Trả phần</button></div>`
+      ).join("");
+  }
+
   box.innerHTML = `
     <div class="receipt">
       <div class="r-top">
@@ -649,6 +762,7 @@ function veTienTrinh(orders) {
       <div class="r-rule"></div>
       <div class="r-status ${st[0]}">${st[1]}</div>
       ${svCho.length ? `<div class="r-wait">⏳ Đang chờ phục vụ: ${svCho.map(esc).join(", ")}</div>` : ``}
+      ${splitHTML}
       <div class="r-foot">Đây là phiếu tạm tính, chưa phải hóa đơn thanh toán.<br>Nhấn “Thanh toán” ở trên để quét mã, hoặc gọi nhân viên.</div>
     </div>`;
 
@@ -741,6 +855,7 @@ function lenLich() {
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { taiDon(); lenLich(); } });
 window.addEventListener("focus", () => taiDon());
 
+veTenChip();
 taiMenu();
 taiCauHinh();
 taiDon().then(lenLich);
