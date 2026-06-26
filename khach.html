@@ -65,6 +65,8 @@
   .item .gia { font-size: 14px; font-weight: 700; color: #E8590C; }
   .stepper { display: flex; align-items: center; gap: 8px; }
   .stepper button { width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; }
+  button { touch-action: manipulation; }       /* bỏ trễ 300ms trên điện thoại */
+  button:active { transform: scale(.95); opacity: .9; }   /* nhấn là thấy phản hồi ngay */
   .b-sub { border: 1px solid #ddd; background: #fff; }
   .b-add { border: none; background: #E8590C; color: #fff; font-weight: 700; }
   .so { font-weight: 800; min-width: 18px; text-align: center; }
@@ -190,14 +192,21 @@ function veMenu() {
         <div class="mota">${esc(m.mota || '')}</div>
         <div class="gia">${fmt(m.gia)}</div>
       </div>
-      <div class="stepper">
-        ${gio[m.id] ? `<button class="b-sub" onclick="bot('${esc(m.id)}')">−</button><span class="so">${gio[m.id]}</span>` : ``}
-        <button class="b-add" onclick="them('${esc(m.id)}')">+</button>
-      </div>
+      <div class="stepper" id="st-${esc(m.id)}">${stepperHTML(m)}</div>
     </div>`).join("");
 }
-function them(id){ gio[id]=(gio[id]||0)+1; veMenu(); veGio(); }
-function bot(id){ gio[id]--; if(gio[id]<=0) delete gio[id]; veMenu(); veGio(); }
+
+function stepperHTML(m) {
+  return `${gio[m.id] ? `<button class="b-sub" onclick="bot('${esc(m.id)}')">−</button><span class="so">${gio[m.id]}</span>` : ``}
+        <button class="b-add" onclick="them('${esc(m.id)}')">+</button>`;
+}
+function veStepper(id) {
+  const m = MENU.find(x => String(x.id) === String(id));
+  const el = document.getElementById("st-" + id);
+  if (m && el) el.innerHTML = stepperHTML(m);
+}
+function them(id){ gio[id]=(gio[id]||0)+1; veStepper(id); veGio(); }
+function bot(id){ gio[id]--; if(gio[id]<=0) delete gio[id]; veStepper(id); veGio(); }
 
 function veGio() {
   const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return {sl, gia:m.gia}; });
@@ -208,18 +217,23 @@ function veGio() {
   document.getElementById("gioTong").textContent = fmt(tong);
 }
 
-/* Gửi món */
+/* Gửi món — phản hồi ngay, gửi ngầm */
 async function guiDi() {
   const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return { ten:m.ten, gia:m.gia, soLuong:sl }; });
   if (!items.length) return;
   const note = document.getElementById("ghiChu").value.trim();
+  const gioCu = gio;                       // giữ lại phòng khi lỗi
+  gio = {}; document.getElementById("ghiChu").value = "";
+  veMenu(); veGio(); toast("Đã gửi vào bếp ✓");   // hiện ngay, không chờ máy chủ
   try {
     const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
-    if (!d.ok) { alert("Bếp báo lỗi: " + (d.error || "không rõ")); return; }
-    gio = {}; document.getElementById("ghiChu").value = "";
-    veMenu(); veGio(); toast("Đã gửi vào bếp ✓");
+    if (!d.ok) throw new Error(d.error || "không rõ");
     setTimeout(taiDon, 600);
-  } catch(e){ alert("Gửi không được, kiểm tra mạng. " + e); }
+  } catch(e){
+    gio = gioCu; document.getElementById("ghiChu").value = note;   // trả lại giỏ
+    veMenu(); veGio();
+    alert("Gửi chưa được, kiểm tra mạng rồi gửi lại. " + e);
+  }
 }
 
 /* Yêu cầu phục vụ */
