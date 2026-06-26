@@ -162,6 +162,34 @@
   .footer-note { text-align: center; color: #b9ab97; font-size: 10.5px; letter-spacing: 2px;
     text-transform: uppercase; padding: 8px 0 2px; }
 
+  /* ===== Phiếu tạm tính (kiểu hóa đơn) ===== */
+  .receipt { background: #FFFDFA; border: 1px solid rgba(200,162,75,.4); border-radius: 12px; padding: 16px 16px 14px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 4px 14px rgba(80,45,20,.06); }
+  .r-top { text-align: center; }
+  .r-quan { font-family: "Playfair Display", serif; font-weight: 800; font-size: 19px; color: var(--do); letter-spacing: .5px; }
+  .r-meta { font-size: 11px; color: var(--muc-nhat); letter-spacing: 2px; margin-top: 3px; }
+  .r-rule { border-top: 1px dashed rgba(122,26,26,.3); margin: 11px 0; }
+  .r-batch { margin-bottom: 11px; }
+  .r-batch:last-of-type { margin-bottom: 0; }
+  .r-bhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .r-time { font-size: 11px; color: var(--muc-nhat); font-weight: 600; letter-spacing: .5px; flex: none; }
+  .r-chip { font-size: 10.5px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+  .r-chip.moi  { background: #FBEFD6; color: #8a5a12; }
+  .r-chip.cook { background: #E9F7EC; color: #1d6b34; }
+  .r-chip.done { background: #E6F0FB; color: #1864AB; }
+  .r-line { display: flex; align-items: flex-end; font-size: 14px; padding: 3px 0; }
+  .r-line .nm { color: var(--muc); }
+  .r-line .nm b { color: var(--do); font-weight: 700; }
+  .r-line .dots { flex: 1; border-bottom: 1px dotted rgba(122,26,26,.3); margin: 0 6px 5px; min-width: 14px; }
+  .r-line .pr { font-weight: 600; color: var(--muc); white-space: nowrap; }
+  .r-note { font-size: 12px; color: #8A5A12; background: #FBEFD6; padding: 5px 9px; border-radius: 8px; margin-top: 5px; }
+  .r-sv { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #1864AB; padding: 4px 0; }
+  .r-sv.done { color: #2B7A3E; }
+  .r-total { display: flex; justify-content: space-between; align-items: baseline; }
+  .r-total .lab { font-weight: 700; font-size: 14px; color: var(--muc); }
+  .r-total .val { font-family: "Playfair Display", serif; font-weight: 800; font-size: 23px; color: var(--do); }
+  .r-foot { text-align: center; font-size: 10.5px; color: var(--muc-nhat); margin-top: 11px; line-height: 1.55; }
+
   /* ===== Giỏ — thanh dưới sơn mài bóng ===== */
   .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
     padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); display: none; flex-direction: column; gap: 11px; z-index: 30;
@@ -285,12 +313,12 @@
     </div>
 
     <div class="card" id="cardDaGoi" style="display:none">
-      <h3 class="sec">Món đã đặt</h3>
-      <p class="sec-sub">Danh sách món của bàn và tiến trình từng món</p>
+      <h3 class="sec">Phiếu tạm tính</h3>
+      <p class="sec-sub">Danh sách món đã gọi & tạm tính của bàn</p>
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.0</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.1</div>
   </div>
 </div>
 
@@ -554,32 +582,42 @@ function veTienTrinh(orders) {
   if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; capNhatFab(); return; }
   card.style.display="block";
 
-  box.innerHTML = orders.map(o => {
-    const isSV = o.items.every(i => i.gia === 0); // yêu cầu phục vụ
-    const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+  const CHIP = { moi:["moi","● Bếp đã nhận"], dang_lam:["cook","● Đang chế biến"], xong:["done","✓ Đã xong"] };
+  const tenQuan = (typeof CAUHINH === "object" && CAUHINH && CAUHINH.tenQuan) ? CAUHINH.tenQuan : "QUÁN VIỆT";
 
+  let body = "";
+  orders.forEach(o => {
+    const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
+    const isSV = o.items.every(i => i.gia === 0);
     if (isSV) {
       const xong = o.trangThai === "xong";
-      return `<div class="luot">
-        <div class="luot-head"><span class="luot-time">${time}</span></div>
-        <span class="sv-chip ${xong?'done':''}">${o.items[0].ten} — ${xong ? "đã xử lý ✓" : "đang chờ…"}</span>
-      </div>`;
+      body += `<div class="r-sv ${xong?'done':''}"><span>${esc(o.items[0].ten)} — ${xong ? "đã xử lý ✓" : "đang chờ…"}</span><span class="r-time">${time}</span></div>`;
+      return;
     }
+    const c = CHIP[o.trangThai] || CHIP.moi;
+    body += `<div class="r-batch">
+      <div class="r-bhead"><span class="r-time">${time}</span><span class="r-chip ${c[0]}">${c[1]}</span></div>
+      ${o.items.map(i=>`<div class="r-line"><span class="nm">${esc(i.ten)} <b>×${i.soLuong}</b></span><span class="dots"></span><span class="pr">${fmt(i.gia*i.soLuong)}</span></div>`).join("")}
+      ${o.note ? `<div class="r-note">📝 ${esc(o.note)}</div>` : ``}
+    </div>`;
+  });
 
-    const cur = TT[o.trangThai] ?? 0;
-    const buoc = [["📥","Đã nhận"],["👨‍🍳","Đang chế biến"],["✅","Xong"]];
-    return `
-      <div class="luot">
-        <div class="luot-head"><span class="luot-time">${time}</span></div>
-        ${o.items.map(i=>`<div class="mon-row"><span>${i.ten} <b>×${i.soLuong}</b></span><span>${fmt(i.gia*i.soLuong)}</span></div>`).join("")}
-        ${o.note ? `<div class="note-row">📝 ${o.note}</div>` : ``}
-        <div class="steps">
-          ${buoc.map((b,idx)=>`<div class="step ${idx<cur?'on':''} ${idx===cur?'cur':''}"><div class="dot">${idx<=cur?b[0]:idx+1}</div><div class="txt">${b[1]}</div></div>`).join("")}
-        </div>
-      </div>`;
-  }).join("");
+  const tong = tinhTong(orders);
+  const soMon = orders.reduce((s,o)=> s + o.items.reduce((a,i)=> a + (i.gia>0 ? i.soLuong : 0), 0), 0);
+  box.innerHTML = `
+    <div class="receipt">
+      <div class="r-top">
+        <div class="r-quan">${esc(tenQuan)}</div>
+        <div class="r-meta">PHIẾU TẠM TÍNH · BÀN ${esc(BAN)}</div>
+      </div>
+      <div class="r-rule"></div>
+      ${body}
+      <div class="r-rule"></div>
+      <div class="r-total"><span class="lab">TẠM TÍNH (${soMon} món)</span><span class="val">${fmt(tong)}</span></div>
+      <div class="r-foot">Đây là phiếu tạm tính, chưa phải hóa đơn thanh toán.<br>Nhấn “Thanh toán” ở trên để quét mã, hoặc gọi nhân viên.</div>
+    </div>`;
 
-  document.getElementById("tongDaGoi").textContent = fmt(tinhTong(orders));
+  document.getElementById("tongDaGoi").textContent = fmt(tong);
   capNhatFab();
 }
 
