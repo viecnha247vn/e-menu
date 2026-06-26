@@ -163,32 +163,39 @@
     text-transform: uppercase; padding: 8px 0 2px; }
 
   /* ===== Phiếu tạm tính (kiểu hóa đơn) ===== */
-  .receipt { background: #FFFDFA; border: 1px solid rgba(200,162,75,.4); border-radius: 12px; padding: 16px 16px 14px;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), 0 4px 14px rgba(80,45,20,.06); }
+  .receipt { position: relative; background: #FFFDFA; border-radius: 3px; padding: 18px 16px 16px; margin: 5px 3px;
+    filter: drop-shadow(0 6px 14px rgba(80,45,20,.13)); }
+  .receipt::before, .receipt::after { content: ""; position: absolute; left: 0; right: 0; height: 10px;
+    background-repeat: repeat-x; background-size: 18px 20px;
+    background-image: linear-gradient(45deg, #FFFDFA 50%, transparent 51%), linear-gradient(-45deg, #FFFDFA 50%, transparent 51%);
+    background-position: 0 0, 9px 0; }
+  .receipt::before { top: -10px; }
+  .receipt::after { bottom: -10px; transform: scaleY(-1); }
   .r-top { text-align: center; }
-  .r-quan { font-family: "Playfair Display", serif; font-weight: 800; font-size: 19px; color: var(--do); letter-spacing: .5px; }
-  .r-meta { font-size: 11px; color: var(--muc-nhat); letter-spacing: 2px; margin-top: 3px; }
-  .r-rule { border-top: 1px dashed rgba(122,26,26,.3); margin: 11px 0; }
-  .r-batch { margin-bottom: 11px; }
-  .r-batch:last-of-type { margin-bottom: 0; }
-  .r-bhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-  .r-time { font-size: 11px; color: var(--muc-nhat); font-weight: 600; letter-spacing: .5px; flex: none; }
-  .r-chip { font-size: 10.5px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
-  .r-chip.moi  { background: #FBEFD6; color: #8a5a12; }
-  .r-chip.cook { background: #E9F7EC; color: #1d6b34; }
-  .r-chip.done { background: #E6F0FB; color: #1864AB; }
-  .r-line { display: flex; align-items: flex-end; font-size: 14px; padding: 3px 0; }
-  .r-line .nm { color: var(--muc); }
-  .r-line .nm b { color: var(--do); font-weight: 700; }
-  .r-line .dots { flex: 1; border-bottom: 1px dotted rgba(122,26,26,.3); margin: 0 6px 5px; min-width: 14px; }
-  .r-line .pr { font-weight: 600; color: var(--muc); white-space: nowrap; }
-  .r-note { font-size: 12px; color: #8A5A12; background: #FBEFD6; padding: 5px 9px; border-radius: 8px; margin-top: 5px; }
-  .r-sv { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #1864AB; padding: 4px 0; }
-  .r-sv.done { color: #2B7A3E; }
+  .r-quan { font-family: "Playfair Display", serif; font-weight: 800; font-size: 20px; color: var(--do); letter-spacing: .5px; }
+  .r-meta { font-size: 11px; color: var(--muc-nhat); letter-spacing: 3px; margin-top: 3px; }
+  .r-info { margin-top: 12px; font-size: 12.5px; }
+  .r-info > div { display: flex; justify-content: space-between; padding: 2px 0; }
+  .r-info span { color: var(--muc-nhat); }
+  .r-info b { color: var(--muc); font-weight: 600; }
+  .r-rule { border-top: 1px dashed rgba(122,26,26,.32); margin: 11px 0; }
+  .r-cols { display: flex; align-items: baseline; font-size: 14px; padding: 4px 0; }
+  .r-cols .c-ten { flex: 1; color: var(--muc); padding-right: 8px; }
+  .r-cols .c-sl { width: 34px; text-align: center; color: var(--muc-nhat); flex: none; }
+  .r-cols .c-pr { width: 92px; text-align: right; font-weight: 600; color: var(--muc); flex: none; white-space: nowrap; }
+  .r-cols.head { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muc-nhat); padding-bottom: 6px; }
+  .r-cols.head .c-ten, .r-cols.head .c-sl, .r-cols.head .c-pr { color: var(--muc-nhat); font-weight: 700; }
+  .r-empty { font-size: 13px; color: var(--muc-nhat); padding: 6px 0; }
+  .r-note { font-size: 12px; color: #8A5A12; background: #FBEFD6; padding: 6px 10px; border-radius: 8px; margin-top: 8px; }
   .r-total { display: flex; justify-content: space-between; align-items: baseline; }
-  .r-total .lab { font-weight: 700; font-size: 14px; color: var(--muc); }
-  .r-total .val { font-family: "Playfair Display", serif; font-weight: 800; font-size: 23px; color: var(--do); }
-  .r-foot { text-align: center; font-size: 10.5px; color: var(--muc-nhat); margin-top: 11px; line-height: 1.55; }
+  .r-total .lab { font-weight: 700; font-size: 13.5px; color: var(--muc); }
+  .r-total .val { font-family: "Playfair Display", serif; font-weight: 800; font-size: 25px; color: var(--do); }
+  .r-status { text-align: center; font-size: 13px; font-weight: 700; padding: 7px; border-radius: 9px; }
+  .r-status.moi  { background: #FBEFD6; color: #8a5a12; }
+  .r-status.cook { background: #E9F7EC; color: #1d6b34; }
+  .r-status.done { background: #E6F0FB; color: #1864AB; }
+  .r-wait { text-align: center; font-size: 12.5px; color: #1864AB; margin-top: 8px; font-weight: 600; }
+  .r-foot { text-align: center; font-size: 10.5px; color: var(--muc-nhat); margin-top: 12px; line-height: 1.55; }
 
   /* ===== Giỏ — thanh dưới sơn mài bóng ===== */
   .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
@@ -318,7 +325,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.1</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.2</div>
   </div>
 </div>
 
@@ -582,38 +589,61 @@ function veTienTrinh(orders) {
   if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; capNhatFab(); return; }
   card.style.display="block";
 
-  const CHIP = { moi:["moi","● Bếp đã nhận"], dang_lam:["cook","● Đang chế biến"], xong:["done","✓ Đã xong"] };
-  const tenQuan = (typeof CAUHINH === "object" && CAUHINH && CAUHINH.tenQuan) ? CAUHINH.tenQuan : "QUÁN VIỆT";
+  const tenQuan = (typeof CAUHINH==="object" && CAUHINH && CAUHINH.tenQuan) ? CAUHINH.tenQuan : "QUÁN VIỆT";
+  const laSV = o => o.items.every(i => i.gia === 0);
 
-  let body = "";
+  // Gộp các món trùng (cùng tên + giá) thành một dòng
+  const map = new Map();
+  const ghiChu = new Set();
   orders.forEach(o => {
-    const time = new Date(o.luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"});
-    const isSV = o.items.every(i => i.gia === 0);
-    if (isSV) {
-      const xong = o.trangThai === "xong";
-      body += `<div class="r-sv ${xong?'done':''}"><span>${esc(o.items[0].ten)} — ${xong ? "đã xử lý ✓" : "đang chờ…"}</span><span class="r-time">${time}</span></div>`;
-      return;
-    }
-    const c = CHIP[o.trangThai] || CHIP.moi;
-    body += `<div class="r-batch">
-      <div class="r-bhead"><span class="r-time">${time}</span><span class="r-chip ${c[0]}">${c[1]}</span></div>
-      ${o.items.map(i=>`<div class="r-line"><span class="nm">${esc(i.ten)} <b>×${i.soLuong}</b></span><span class="dots"></span><span class="pr">${fmt(i.gia*i.soLuong)}</span></div>`).join("")}
-      ${o.note ? `<div class="r-note">📝 ${esc(o.note)}</div>` : ``}
-    </div>`;
+    if (laSV(o)) return;
+    if (o.note) ghiChu.add(o.note.trim());
+    o.items.forEach(i => {
+      if (i.gia <= 0) return;
+      const key = i.ten + "|" + i.gia;
+      const cur = map.get(key) || { ten:i.ten, gia:i.gia, sl:0 };
+      cur.sl += i.soLuong; map.set(key, cur);
+    });
   });
+  const items = [...map.values()];
+
+  // Trạng thái tổng của bếp
+  const food = orders.filter(o => !laSV(o));
+  let st = ["moi","● Bếp đã nhận đơn"];
+  if (food.some(o=>o.trangThai==="dang_lam")) st = ["cook","● Đang chế biến"];
+  else if (food.length && food.every(o=>o.trangThai==="xong")) st = ["done","✓ Món đã sẵn sàng"];
+  const svCho = orders.filter(o => laSV(o) && o.trangThai!=="xong").map(o=>o.items[0].ten);
 
   const tong = tinhTong(orders);
-  const soMon = orders.reduce((s,o)=> s + o.items.reduce((a,i)=> a + (i.gia>0 ? i.soLuong : 0), 0), 0);
+  const soMon = items.reduce((s,i)=>s+i.sl,0);
+  const now = new Date();
+  const ngayGio = now.toLocaleString("vi-VN",{hour:"2-digit",minute:"2-digit",day:"2-digit",month:"2-digit",year:"numeric"}).replace(", "," · ");
+  const maPhieu = "#" + BAN + "-" + new Date(orders[0].luc).toLocaleTimeString("vi-VN",{hour:"2-digit",minute:"2-digit"}).replace(":","");
+
+  const rows = items.map(i =>
+    `<div class="r-cols"><span class="c-ten">${esc(i.ten)}</span><span class="c-sl">${i.sl}</span><span class="c-pr">${fmt(i.gia*i.sl)}</span></div>`
+  ).join("");
+
   box.innerHTML = `
     <div class="receipt">
       <div class="r-top">
         <div class="r-quan">${esc(tenQuan)}</div>
-        <div class="r-meta">PHIẾU TẠM TÍNH · BÀN ${esc(BAN)}</div>
+        <div class="r-meta">PHIẾU TẠM TÍNH</div>
+      </div>
+      <div class="r-info">
+        <div><span>Số phiếu</span><b>${esc(maPhieu)}</b></div>
+        <div><span>Bàn</span><b>${esc(BAN)}</b></div>
+        <div><span>Thời gian</span><b>${ngayGio}</b></div>
       </div>
       <div class="r-rule"></div>
-      ${body}
+      <div class="r-cols head"><span class="c-ten">Món</span><span class="c-sl">SL</span><span class="c-pr">Thành tiền</span></div>
+      ${rows || `<div class="r-empty">Chưa có món tính tiền</div>`}
+      ${ghiChu.size ? `<div class="r-note">📝 ${[...ghiChu].map(esc).join("; ")}</div>` : ``}
       <div class="r-rule"></div>
-      <div class="r-total"><span class="lab">TẠM TÍNH (${soMon} món)</span><span class="val">${fmt(tong)}</span></div>
+      <div class="r-total"><span class="lab">TỔNG TẠM TÍNH · ${soMon} món</span><span class="val">${fmt(tong)}</span></div>
+      <div class="r-rule"></div>
+      <div class="r-status ${st[0]}">${st[1]}</div>
+      ${svCho.length ? `<div class="r-wait">⏳ Đang chờ phục vụ: ${svCho.map(esc).join(", ")}</div>` : ``}
       <div class="r-foot">Đây là phiếu tạm tính, chưa phải hóa đơn thanh toán.<br>Nhấn “Thanh toán” ở trên để quét mã, hoặc gọi nhân viên.</div>
     </div>`;
 
