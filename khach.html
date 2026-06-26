@@ -169,6 +169,11 @@
     border-top: 1px solid rgba(200,162,75,.5);
     box-shadow: 0 -8px 26px rgba(40,15,15,.35); }
   .giobar.show { display: flex; }
+  .gio-items { max-height: 28vh; overflow-y: auto; display: flex; flex-direction: column; gap: 1px;
+    padding-bottom: 9px; border-bottom: 1px solid rgba(231,206,142,.22); -webkit-overflow-scrolling: touch; }
+  .gi-row { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; padding: 3px 0; }
+  .gi-ten { color: rgba(255,255,255,.92); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
+  .gi-sl { color: var(--dong-sang); font-weight: 700; flex: none; }
   .giobar .note-input { width: 100%; padding: 11px 13px; border-radius: 11px; border: 1px solid rgba(231,206,142,.25);
     font-size: 14px; font-family: inherit; background: rgba(255,255,255,.12); color: #fff; }
   .giobar .note-input::placeholder { color: rgba(246,230,188,.6); }
@@ -225,11 +230,12 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.2</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.3</div>
   </div>
 </div>
 
 <div class="giobar" id="giobar">
+  <div class="gio-items" id="gioItems"></div>
   <input id="ghiChu" class="note-input" placeholder="Ghi chú cho bếp (vd: ít cay, không hành)…" maxlength="120">
   <div class="giobar-row">
     <div>
@@ -335,12 +341,16 @@ function them(id){ gio[id]=(gio[id]||0)+1; veStepper(id); veGio(); }
 function bot(id){ gio[id]--; if(gio[id]<=0) delete gio[id]; veStepper(id); veGio(); }
 
 function veGio() {
-  const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return {sl, gia:m.gia}; });
-  const sl = items.reduce((s,i)=>s+i.sl,0);
-  const tong = items.reduce((s,i)=>s+i.sl*i.gia,0);
+  const entries = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return {m, sl}; }).filter(x=>x.m);
+  const sl = entries.reduce((s,i)=>s+i.sl,0);
+  const tong = entries.reduce((s,i)=>s+i.sl*i.m.gia,0);
   document.getElementById("giobar").classList.toggle("show", sl>0);
   document.getElementById("gioSL").textContent = sl + " món chờ gửi";
   document.getElementById("gioTong").textContent = fmt(tong);
+  const box = document.getElementById("gioItems");
+  if (box) box.innerHTML = entries.map(({m,sl}) =>
+    `<div class="gi-row"><span class="gi-ten">${esc(m.ten)}</span><span class="gi-sl">×${sl}</span></div>`
+  ).join("");
 }
 
 /* Gửi món — phản hồi ngay, gửi ngầm */
