@@ -191,6 +191,15 @@
     font-weight: 700; font-size: 14px; box-shadow: 0 8px 22px rgba(0,0,0,.3); opacity: 0; transition: .3s; z-index: 50; }
   .toast.show { opacity: 1; bottom: 190px; }
 
+  /* Nút nổi theo dõi đơn */
+  .track-fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 25; display: none;
+    padding: 9px 16px; border-radius: 30px; font-size: 12.5px; font-weight: 700; cursor: pointer; color: #3a1d05;
+    border: 1px solid rgba(231,206,142,.7);
+    background: linear-gradient(180deg,#FFFDF8,#F0E2C6);
+    box-shadow: 0 6px 18px rgba(40,15,15,.28), inset 0 1px 0 rgba(255,255,255,.85); }
+  .track-fab.show { display: block; }
+  .track-fab:active { transform: translateX(-50%) scale(.96); }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } button:active { transform: none; } }
 
   /* ===== Modal thanh toán VietQR ===== */
@@ -252,7 +261,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.4</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.5</div>
   </div>
 </div>
 
@@ -267,6 +276,8 @@
     <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
   </div>
 </div>
+
+<button class="track-fab" id="trackFab" onclick="xemDon()">📋 Theo dõi đơn ↓</button>
 
 <div class="modal" id="modalPay" onclick="if(event.target===this)dongPay()">
   <div class="sheet">
@@ -385,6 +396,7 @@ function veGio() {
   if (box) box.innerHTML = entries.map(({m,sl}) =>
     `<div class="gi-row"><span class="gi-ten">${esc(m.ten)}</span><span class="gi-sl">×${sl}</span></div>`
   ).join("");
+  if (typeof capNhatFab === "function") capNhatFab();
 }
 
 /* Gửi món — phản hồi ngay, gửi ngầm */
@@ -478,7 +490,7 @@ async function taiDon() {
 function veTienTrinh(orders) {
   const card = document.getElementById("cardDaGoi");
   const box = document.getElementById("daGoi");
-  if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; return; }
+  if (!orders.length) { card.style.display="none"; document.getElementById("tongDaGoi").textContent="0đ"; capNhatFab(); return; }
   card.style.display="block";
 
   box.innerHTML = orders.map(o => {
@@ -494,7 +506,7 @@ function veTienTrinh(orders) {
     }
 
     const cur = TT[o.trangThai] ?? 0;
-    const buoc = [["📥","Đã nhận"],["🔥","Đang nấu"],["✅","Xong"]];
+    const buoc = [["📥","Đã nhận"],["👨‍🍳","Đang chế biến"],["✅","Xong"]];
     return `
       <div class="luot">
         <div class="luot-head"><span class="luot-time">${time}</span></div>
@@ -507,6 +519,24 @@ function veTienTrinh(orders) {
   }).join("");
 
   document.getElementById("tongDaGoi").textContent = fmt(tinhTong(orders));
+  capNhatFab();
+}
+
+/* Nút nổi "Theo dõi đơn" — hiện khi đã có món đã đặt, tự né thanh giỏ */
+function capNhatFab() {
+  const fab = document.getElementById("trackFab");
+  if (!fab) return;
+  const coDon = (window._orders || []).length > 0;
+  fab.classList.toggle("show", coDon);
+  const gb = document.getElementById("giobar");
+  const cao = gb && gb.classList.contains("show") ? gb.offsetHeight : 0;
+  fab.style.bottom = (cao ? cao + 12 : 16) + "px";
+}
+function xemDon() {
+  rung(12);
+  const card = document.getElementById("cardDaGoi");
+  if (card && card.style.display !== "none") card.scrollIntoView({ behavior:"smooth", block:"start" });
+  else toast("Chưa có món nào đã gửi");
 }
 
 taiMenu();
