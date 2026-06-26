@@ -193,14 +193,32 @@
 
   /* Nút nổi theo dõi đơn */
   .track-fab { position: fixed; left: 50%; transform: translateX(-50%); bottom: 16px; z-index: 25; display: none;
-    padding: 9px 16px; border-radius: 30px; font-size: 12.5px; font-weight: 700; cursor: pointer; color: #3a1d05;
+    align-items: center; padding: 9px 17px; border-radius: 30px; font-size: 12.5px; font-weight: 700; cursor: pointer; color: #3a1d05;
     border: 1px solid rgba(231,206,142,.7);
     background: linear-gradient(180deg,#FFFDF8,#F0E2C6);
     box-shadow: 0 6px 18px rgba(40,15,15,.28), inset 0 1px 0 rgba(255,255,255,.85); }
-  .track-fab.show { display: block; }
+  .track-fab.show { display: inline-flex; }
   .track-fab:active { transform: translateX(-50%) scale(.96); }
+  .fab-dot { width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; background: #9a8f80; flex: none; }
+  /* Đang chế biến — xanh nhấp nháy kiểu "online" */
+  .track-fab.cook  .fab-dot { background: #34C759; animation: fab-pulse 1.2s infinite; }
+  .track-fab.cook  { color: #1d6b34; }
+  /* Bếp đã nhận — hổ phách nhấp nháy */
+  .track-fab.new   .fab-dot { background: #E8A23D; animation: fab-blink 1.3s infinite; }
+  .track-fab.new   { color: #8a5a12; }
+  /* Món đã xong — xanh sáng đứng yên */
+  .track-fab.done  .fab-dot { background: #2FBF55; box-shadow: 0 0 8px rgba(47,191,85,.6); }
+  .track-fab.done  { color: #1d6b34; }
+  /* Chờ tính tiền — xanh dương nhấp nháy */
+  .track-fab.bill  .fab-dot { background: #2F86D6; animation: fab-blink 1.2s infinite; }
+  .track-fab.bill  { color: #1b5a96; }
+  /* Gọi nhân viên — hổ phách nhấp nháy */
+  .track-fab.staff .fab-dot { background: #E8A23D; animation: fab-blink 1.1s infinite; }
+  .track-fab.staff { color: #8a5a12; }
+  @keyframes fab-pulse { 0%{box-shadow:0 0 0 0 rgba(52,199,89,.55)} 70%{box-shadow:0 0 0 8px rgba(52,199,89,0)} 100%{box-shadow:0 0 0 0 rgba(52,199,89,0)} }
+  @keyframes fab-blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } button:active { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } button:active { transform: none; } .fab-dot { animation: none !important; } }
 
   /* ===== Modal thanh toán VietQR ===== */
   .modal { position: fixed; inset: 0; z-index: 60; display: none; align-items: flex-end; justify-content: center;
@@ -261,7 +279,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.5</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.6</div>
   </div>
 </div>
 
@@ -277,7 +295,7 @@
   </div>
 </div>
 
-<button class="track-fab" id="trackFab" onclick="xemDon()">📋 Theo dõi đơn ↓</button>
+<button class="track-fab" id="trackFab" onclick="xemDon()"><span class="fab-dot"></span>Theo dõi đơn ↓</button>
 
 <div class="modal" id="modalPay" onclick="if(event.target===this)dongPay()">
   <div class="sheet">
@@ -522,12 +540,32 @@ function veTienTrinh(orders) {
   capNhatFab();
 }
 
-/* Nút nổi "Theo dõi đơn" — hiện khi đã có món đã đặt, tự né thanh giỏ */
+/* Nút nổi "Theo dõi đơn" — đổi nhãn + đèn báo theo tiến trình bếp */
 function capNhatFab() {
   const fab = document.getElementById("trackFab");
   if (!fab) return;
-  const coDon = (window._orders || []).length > 0;
-  fab.classList.toggle("show", coDon);
+  const orders = window._orders || [];
+  if (!orders.length) { fab.className = "track-fab"; return; }
+
+  const laSV = o => o.items.every(i => i.gia === 0);
+  const food = orders.filter(o => !laSV(o));
+  const sv = orders.filter(o => laSV(o) && o.trangThai !== "xong");
+
+  let tt = "track", text = "Theo dõi đơn";
+  if (food.some(o => o.trangThai === "dang_lam")) { tt = "cook"; text = "Đang chế biến"; }
+  else if (food.some(o => o.trangThai === "moi")) { tt = "new"; text = "Bếp đã nhận đơn"; }
+  else if (food.length && food.every(o => o.trangThai === "xong")) { tt = "done"; text = "Món đã sẵn sàng ✓"; }
+
+  // Nếu bếp không còn món đang xử lý, ưu tiên hiển thị yêu cầu phục vụ đang chờ
+  if (tt === "track" || tt === "done") {
+    if (sv.some(o => /tính tiền/i.test(o.items[0].ten))) { tt = "bill"; text = "Đang chờ tính tiền"; }
+    else if (sv.some(o => /nhân viên/i.test(o.items[0].ten))) { tt = "staff"; text = "Đang gọi nhân viên"; }
+  }
+
+  fab.className = "track-fab show " + tt;
+  fab.innerHTML = `<span class="fab-dot"></span>${text} ↓`;
+
+  // né thanh giỏ khi đang chọn món
   const gb = document.getElementById("giobar");
   const cao = gb && gb.classList.contains("show") ? gb.offsetHeight : 0;
   fab.style.bottom = (cao ? cao + 12 : 16) + "px";
@@ -535,8 +573,9 @@ function capNhatFab() {
 function xemDon() {
   rung(12);
   const card = document.getElementById("cardDaGoi");
-  if (card && card.style.display !== "none") card.scrollIntoView({ behavior:"smooth", block:"start" });
-  else toast("Chưa có món nào đã gửi");
+  if (card && card.style.display !== "none") {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  } else toast("Chưa có món nào đã gửi");
 }
 
 taiMenu();
