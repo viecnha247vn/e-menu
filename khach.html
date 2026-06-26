@@ -241,6 +241,9 @@
     padding: 14px; border-radius: 13px; background: linear-gradient(180deg,var(--dong-sang),var(--dong));
     box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 5px 14px rgba(0,0,0,.18); }
   .btn-close { width: 100%; margin-top: 8px; background: transparent; border: none; color: var(--muc-nhat); font-size: 14px; padding: 10px; cursor: pointer; }
+  .done-ic { font-size: 52px; text-align: center; margin: 4px 0 2px; }
+  .done-tit { font-family: "Playfair Display", serif; font-size: 27px; font-weight: 800; color: var(--do); text-align: center; }
+  .done-sub { text-align: center; color: var(--muc-nhat); font-size: 14.5px; line-height: 1.6; margin: 8px 0 16px; }
 </style>
 </head>
 <body>
@@ -279,7 +282,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.7</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.8</div>
   </div>
 </div>
 
@@ -306,6 +309,16 @@
     <div id="payQR"></div>
     <button class="pay-act" onclick="baoTinhTien()">Báo nhân viên ra tính tiền</button>
     <button class="btn-close" onclick="dongPay()">Đóng</button>
+  </div>
+</div>
+
+<div class="modal" id="modalDone" onclick="if(event.target===this)dongDone()">
+  <div class="sheet" style="text-align:center">
+    <div class="sheet-grab"></div>
+    <div class="done-ic">🎉</div>
+    <div class="done-tit">Đã thanh toán</div>
+    <p class="done-sub">Cảm ơn quý khách đã dùng bữa.<br>Hẹn gặp lại quý khách! 🙏</p>
+    <button class="btn-close" onclick="dongDone()">Đóng</button>
   </div>
 </div>
 
@@ -496,6 +509,8 @@ function tinhTong(orders) {
 }
 
 let dangTai = false;
+let tungCoDon = false;     // đã từng có đơn trong phiên này
+let daThanhToan = false;   // bàn vừa được đóng (đã thanh toán)
 async function taiDon() {
   if (dangTai) return;                 // tránh gọi chồng lên nhau
   dangTai = true;
@@ -504,6 +519,14 @@ async function taiDon() {
     if (d && d.ok) {
       const orders = d.orders.sort((a,b)=>a.luc-b.luc);
       window._orders = orders;
+      if (orders.length) {
+        tungCoDon = true;
+        daThanhToan = false;           // có khách mới gọi món → reset
+      } else if (tungCoDon && !daThanhToan) {
+        daThanhToan = true;            // đơn biến mất sau khi từng có → bàn đã được đóng = đã thanh toán
+        gio = {}; veMenu(); veGio();   // dọn giỏ còn sót
+        moCamOn();
+      }
       veTienTrinh(orders);
     }
   } catch(e){ /* giữ màn hình cũ nếu lỗi mạng */ }
@@ -550,7 +573,16 @@ function capNhatFab() {
   const fab = document.getElementById("trackFab");
   if (!fab) return;
   const orders = window._orders || [];
-  if (!orders.length) { fab.className = "track-fab"; return; }
+  if (!orders.length) {
+    if (daThanhToan) {
+      fab.className = "track-fab show done";
+      fab.innerHTML = `<span class="fab-dot"></span>Đã thanh toán ✓`;
+      fab.style.bottom = "16px";
+    } else {
+      fab.className = "track-fab";
+    }
+    return;
+  }
 
   const laSV = o => o.items.every(i => i.gia === 0);
   const food = orders.filter(o => !laSV(o));
@@ -580,8 +612,18 @@ function xemDon() {
   const card = document.getElementById("cardDaGoi");
   if (card && card.style.display !== "none") {
     window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  } else if (daThanhToan) {
+    moCamOn();
   } else toast("Chưa có món nào đã gửi");
 }
+
+/* Màn hình cảm ơn khi đã thanh toán (bàn được đóng) */
+function moCamOn() {
+  rung(30);
+  document.getElementById("modalDone").classList.add("show");
+  capNhatFab();
+}
+function dongDone() { document.getElementById("modalDone").classList.remove("show"); }
 
 /* Làm mới thông minh: nhanh khi đang chờ bếp, chậm khi rảnh, tự né gọi chồng */
 function dangHoatDong() {
