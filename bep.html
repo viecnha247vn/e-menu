@@ -88,6 +88,8 @@
   .pinbox button { width: 100%; padding: 12px; background: #E8590C; color: #fff; border: none;
     border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; }
   .pinbox .err { color: #ff8787; font-size: 13px; min-height: 18px; }
+  button { touch-action: manipulation; }
+  button:active { transform: scale(.97); opacity: .9; }
 </style>
 </head>
 <body>
@@ -141,6 +143,7 @@ let audio = null;
 let seen = new Set();
 let firstLoad = true;
 let chuongBat = true;
+let donHienTai = [];   // bộ nhớ tạm để đổi trạng thái hiện ngay
 
 function toggleChuong() {
   chuongBat = !chuongBat;
@@ -191,6 +194,7 @@ async function taiDon() {
     if (d.doanhThu) document.getElementById("dtHomNay").textContent =
       fmt(d.doanhThu.tong) + " · " + d.doanhThu.soBan + " bàn";
     const orders = d.orders.sort((a,b)=>a.luc-b.luc);
+    donHienTai = orders;
     const coDonMoi = orders.some(o => !seen.has(o.id));
     if (!firstLoad && coDonMoi) ting();
     orders.forEach(o => seen.add(o.id));
@@ -261,11 +265,14 @@ function ticket(o) {
 }
 
 async function doi(id, trangThai) {
+  // đổi ngay trên màn hình (lạc quan), rồi gửi ngầm
+  const o = donHienTai.find(x => x.id === id);
+  if (o) { o.trangThai = trangThai; ve(donHienTai); }
   try {
     const d = await jsonp({ action:"update", id, trangThai, pin:PIN });
-    if (!d.ok) { alert(d.error || "Không đổi được"); return; }
-    taiDon();
-  } catch(e){ alert("Lỗi mạng: " + e); }
+    if (!d.ok) { alert(d.error || "Không đổi được"); taiDon(); return; }
+    setTimeout(taiDon, 500);
+  } catch(e){ alert("Lỗi mạng: " + e); taiDon(); }
 }
 
 async function dongBan(ban, tong) {
