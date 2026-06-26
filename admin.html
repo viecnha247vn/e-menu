@@ -16,7 +16,7 @@
   .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
   h3 { font-size: 16px; margin-bottom: 12px; }
   label { display: block; font-size: 12px; color: #666; font-weight: 600; margin: 10px 0 4px; }
-  input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 9px; font-size: 15px; font-family: inherit; }
+  input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 9px; font-size: 15px; font-family: inherit; background: #fff; }
   textarea { resize: vertical; min-height: 52px; }
   .row { display: flex; gap: 12px; flex-wrap: wrap; }
   .row > div { flex: 1; min-width: 120px; }
@@ -49,6 +49,10 @@
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2B8A3E; color: #fff; padding: 12px 22px; border-radius: 30px; font-weight: 700; font-size: 14px; opacity: 0; transition: .3s; z-index: 50; }
   .toast.show { opacity: 1; }
   .muted { font-size: 12px; color: #999; }
+  .grp-head { font-weight: 800; color: #7A1F1F; font-size: 14px; margin: 16px 0 4px;
+    padding-bottom: 5px; border-bottom: 1px solid #f0e6d8; }
+  .grp-head:first-child { margin-top: 0; }
+  .grp-head span { color: #C8A24B; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -70,10 +74,17 @@
         <input id="fGia" type="number" inputmode="numeric" placeholder="55000">
       </div>
       <div>
-        <label>Biểu tượng (emoji, dùng khi không có ảnh)</label>
-        <input id="fIcon" placeholder="🍜" maxlength="4">
+        <label>Phân loại *</label>
+        <select id="fNhom">
+          <option>Khai vị</option>
+          <option selected>Món chính</option>
+          <option>Tráng miệng</option>
+          <option>Đồ uống</option>
+        </select>
       </div>
     </div>
+    <label>Biểu tượng (emoji, dùng khi không có ảnh)</label>
+    <input id="fIcon" placeholder="🍜" maxlength="4">
     <label>Mô tả</label>
     <textarea id="fMota" placeholder="Bánh phở, thịt bò tái, hành ngò"></textarea>
     <label>Ảnh món (tùy chọn — máy sẽ tự thu nhỏ ảnh)</label>
@@ -147,9 +158,25 @@ async function taiMenu() {
 
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 
+const NHOM_THUTU = ["Khai vị", "Món chính", "Tráng miệng", "Đồ uống"];
+
 function veDS() {
   document.getElementById("dem").textContent = menu.length;
-  document.getElementById("ds").innerHTML = menu.map(m => `
+  const nhomMap = {};
+  menu.forEach(m => { const k = m.nhom || "Món chính"; (nhomMap[k] = nhomMap[k] || []).push(m); });
+  const thuTu = [...NHOM_THUTU, ...Object.keys(nhomMap).filter(k => !NHOM_THUTU.includes(k))];
+  let html = "";
+  thuTu.forEach(nhom => {
+    const ds = nhomMap[nhom];
+    if (!ds || !ds.length) return;
+    html += `<div class="grp-head">${esc(nhom)} <span>· ${ds.length}</span></div>`;
+    html += ds.map(m => itemRow(m)).join("");
+  });
+  document.getElementById("ds").innerHTML = html || '<div class="muted">Chưa có món nào.</div>';
+}
+
+function itemRow(m) {
+  return `
     <div class="item ${m.hien ? "" : "an"}">
       <div class="thumb">${m.anh
         ? `<img src="${esc(m.anh)}" style="width:100%;height:100%;object-fit:cover;border-radius:10px" onerror="this.style.display='none'">`
@@ -164,7 +191,7 @@ function veDS() {
         <button class="btn sm ghost" onclick="anHien('${esc(m.id)}', ${m.hien})">${m.hien?"Ẩn":"Hiện"}</button>
         <button class="btn sm del" onclick="xoaMon('${esc(m.id)}')">Xóa</button>
       </div>
-    </div>`).join("") || '<div class="muted">Chưa có món nào.</div>';
+    </div>`;
 }
 
 // Thu nhỏ ảnh trước khi upload (đỡ nặng, nhanh)
@@ -194,6 +221,7 @@ function resetForm() {
   document.getElementById("fGia").value = "";
   document.getElementById("fIcon").value = "";
   document.getElementById("fMota").value = "";
+  document.getElementById("fNhom").value = "Món chính";
   document.getElementById("fHien").checked = true;
   document.getElementById("fFile").value = "";
   document.getElementById("fPreview").src = "";
@@ -210,6 +238,7 @@ function suaMon(id) {
   document.getElementById("fGia").value = m.gia;
   document.getElementById("fIcon").value = m.icon || "";
   document.getElementById("fMota").value = m.mota || "";
+  document.getElementById("fNhom").value = NHOM_THUTU.includes(m.nhom) ? m.nhom : "Món chính";
   document.getElementById("fHien").checked = !!m.hien;
   document.getElementById("fPreview").src = m.anh || "";
   document.getElementById("anhTrangThai").textContent = m.anh ? "Đang dùng ảnh cũ (chọn ảnh mới nếu muốn đổi)" : "";
@@ -230,6 +259,7 @@ async function luuMon() {
     ten: ten, gia: gia,
     icon: document.getElementById("fIcon").value.trim() || "🍽️",
     mota: document.getElementById("fMota").value.trim(),
+    nhom: document.getElementById("fNhom").value,
     hien: document.getElementById("fHien").checked
   };
   if (anhData) payload.anhData = anhData;
@@ -244,7 +274,7 @@ async function luuMon() {
 
 async function anHien(id, dangHien) {
   const m = menu.find(x => x.id === id); if (!m) return;
-  const d = await jsonp({ action:"menu_save", adminPass:PASS, id:id, ten:m.ten, gia:m.gia, icon:m.icon, mota:m.mota, hien: !dangHien, anh: m.anh });
+  const d = await jsonp({ action:"menu_save", adminPass:PASS, id:id, ten:m.ten, gia:m.gia, icon:m.icon, mota:m.mota, nhom:m.nhom, hien: !dangHien, anh: m.anh });
   if (!d.ok) { toast(d.error || "Lỗi"); return; }
   taiMenu();
 }
