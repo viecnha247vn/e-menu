@@ -216,7 +216,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.0</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.1</div>
   </div>
 </div>
 
@@ -263,8 +263,13 @@ document.getElementById("banSo").textContent = "Bàn " + BAN;
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2200);
+  clearTimeout(t._h);
+  t._h = setTimeout(() => t.classList.remove("show"), 2200);
 }
+
+/* Rung nhẹ khi bấm (Android hỗ trợ; iPhone Safari không có rung web) */
+function rung(ms) { try { if (navigator.vibrate) navigator.vibrate(ms || 12); } catch (e) {} }
+document.addEventListener("pointerdown", e => { if (e.target.closest("button")) rung(12); }, { passive: true });
 
 async function taiMenu() {
   const d = await jsonp({ action:"menu_list" });
@@ -317,6 +322,7 @@ async function guiDi() {
   const items = Object.entries(gio).map(([id,sl])=>{ const m=MENU.find(x=>x.id===id); return { ten:m.ten, gia:m.gia, soLuong:sl }; });
   if (!items.length) return;
   const note = document.getElementById("ghiChu").value.trim();
+  rung(28);
   const gioCu = gio;                       // giữ lại phòng khi lỗi
   gio = {}; document.getElementById("ghiChu").value = "";
   veMenu(); veGio(); toast("Đã gửi vào bếp ✓");   // hiện ngay, không chờ máy chủ
@@ -331,20 +337,24 @@ async function guiDi() {
   }
 }
 
-/* Yêu cầu phục vụ */
-async function guiYeuCau(items, note, msg) {
+/* Yêu cầu phục vụ — gửi ngầm */
+async function guiYeuCauNgam(items, note) {
   try {
     const d = await jsonp({ action:"add", ban:BAN, items: JSON.stringify(items), note });
-    if (!d.ok) { alert("Lỗi: " + (d.error||"")); return; }
-    toast(msg); setTimeout(taiDon, 600);
-  } catch(e){ alert("Không gửi được, kiểm tra mạng. " + e); }
+    if (!d.ok) throw new Error(d.error || "");
+    setTimeout(taiDon, 600);
+  } catch(e){ toast("Mạng chưa ổn — bấm gửi lại giúp nhé"); }
 }
 function goiNhanVien() {
-  guiYeuCau([{ ten:"📣 Gọi nhân viên", gia:0, soLuong:1 }], "", "Đã gọi nhân viên ✓");
+  rung(28);
+  toast("Đã gọi nhân viên ✓");           // hiện ngay
+  guiYeuCauNgam([{ ten:"📣 Gọi nhân viên", gia:0, soLuong:1 }], "");
 }
 function xinTinhTien() {
+  rung(28);
   const tong = tinhTong(window._orders || []);
-  guiYeuCau([{ ten:"🧾 Xin tính tiền", gia:0, soLuong:1 }], "Tạm tính: " + fmt(tong), "Đã gửi yêu cầu tính tiền ✓");
+  toast("Đã gửi yêu cầu tính tiền ✓");    // hiện ngay
+  guiYeuCauNgam([{ ten:"🧾 Xin tính tiền", gia:0, soLuong:1 }], "Tạm tính: " + fmt(tong));
 }
 
 function tinhTong(orders) {
