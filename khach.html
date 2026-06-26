@@ -279,7 +279,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.6</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.7</div>
   </div>
 </div>
 
@@ -495,14 +495,19 @@ function tinhTong(orders) {
   return orders.reduce((s,o)=> s + o.items.reduce((a,i)=> a + (i.gia>0 ? i.gia*i.soLuong : 0), 0), 0);
 }
 
+let dangTai = false;
 async function taiDon() {
+  if (dangTai) return;                 // tránh gọi chồng lên nhau
+  dangTai = true;
   try {
     const d = await jsonp({ action:"list", ban: BAN });
-    if (!d.ok) return;
-    const orders = d.orders.sort((a,b)=>a.luc-b.luc);
-    window._orders = orders;
-    veTienTrinh(orders);
+    if (d && d.ok) {
+      const orders = d.orders.sort((a,b)=>a.luc-b.luc);
+      window._orders = orders;
+      veTienTrinh(orders);
+    }
   } catch(e){ /* giữ màn hình cũ nếu lỗi mạng */ }
+  finally { dangTai = false; }
 }
 
 function veTienTrinh(orders) {
@@ -578,10 +583,22 @@ function xemDon() {
   } else toast("Chưa có món nào đã gửi");
 }
 
+/* Làm mới thông minh: nhanh khi đang chờ bếp, chậm khi rảnh, tự né gọi chồng */
+function dangHoatDong() {
+  return (window._orders || []).some(x => x.trangThai !== "xong"); // còn món/yêu cầu chưa xong
+}
+function lenLich() {
+  clearTimeout(window._timer);
+  const nhip = dangHoatDong() ? 2000 : 6000;
+  window._timer = setTimeout(async () => { await taiDon(); lenLich(); }, nhip);
+}
+// Mở khóa điện thoại / quay lại tab → làm mới ngay
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { taiDon(); lenLich(); } });
+window.addEventListener("focus", () => taiDon());
+
 taiMenu();
 taiCauHinh();
-taiDon();
-setInterval(taiDon, 5000);
+taiDon().then(lenLich);
 </script>
 </body>
 </html>
