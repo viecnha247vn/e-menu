@@ -196,6 +196,10 @@
   .r-status.done { background: #E6F0FB; color: #1864AB; }
   .r-wait { text-align: center; font-size: 12.5px; color: #1864AB; margin-top: 8px; font-weight: 600; }
   .r-foot { text-align: center; font-size: 10.5px; color: var(--muc-nhat); margin-top: 12px; line-height: 1.55; }
+  .ve-menu { width: 100%; margin-top: 14px; padding: 13px; border-radius: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    color: var(--do); background: linear-gradient(180deg,#FFFFFF,#F4ECDD); border: 1px solid rgba(200,162,75,.55);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 3px 10px rgba(122,26,26,.08); }
+  .ve-menu:active { background: linear-gradient(180deg,#F4ECDD,#EFE6D4); }
 
   /* ===== Giỏ — thanh dưới sơn mài bóng ===== */
   .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
@@ -323,9 +327,10 @@
       <h3 class="sec">Phiếu tạm tính</h3>
       <p class="sec-sub">Danh sách món đã gọi & tạm tính của bàn</p>
       <div id="daGoi"></div>
+      <button class="ve-menu" onclick="quayVeMenu()">↑ Quay về thực đơn</button>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.2</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.3</div>
   </div>
 </div>
 
@@ -694,6 +699,10 @@ function xemDon() {
   } else {
     document.getElementById("menu").scrollIntoView({ behavior: "smooth", block: "start" });  // mời chọn món
   }
+}
+function quayVeMenu() {
+  rung(12);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 /* Màn hình cảm ơn khi đã thanh toán (bàn được đóng) */
