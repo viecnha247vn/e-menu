@@ -215,6 +215,9 @@
   /* Gọi nhân viên — hổ phách nhấp nháy */
   .track-fab.staff .fab-dot { background: #E8A23D; animation: fab-blink 1.1s infinite; }
   .track-fab.staff { color: #8a5a12; }
+  /* Mời chọn món — xanh nhấp nháy nhẹ kiểu online */
+  .track-fab.browse .fab-dot { background: #34C759; animation: fab-blink 1.4s infinite; }
+  .track-fab.browse { color: #1d6b34; }
   @keyframes fab-pulse { 0%{box-shadow:0 0 0 0 rgba(52,199,89,.55)} 70%{box-shadow:0 0 0 8px rgba(52,199,89,0)} 100%{box-shadow:0 0 0 0 rgba(52,199,89,0)} }
   @keyframes fab-blink { 0%,100%{opacity:1} 50%{opacity:.3} }
 
@@ -282,7 +285,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.8</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.9</div>
   </div>
 </div>
 
@@ -366,6 +369,7 @@ async function taiMenu() {
   const d = await jsonp({ action:"menu_list" });
   if (d.ok && d.menu) MENU = d.menu;
   veMenu();
+  capNhatFab();   // hiện nút "Xin mời chọn món" ngay
 }
 
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
@@ -573,48 +577,44 @@ function capNhatFab() {
   const fab = document.getElementById("trackFab");
   if (!fab) return;
   const orders = window._orders || [];
-  if (!orders.length) {
-    if (daThanhToan) {
-      fab.className = "track-fab show done";
-      fab.innerHTML = `<span class="fab-dot"></span>Đã thanh toán ✓`;
-      fab.style.bottom = "16px";
-    } else {
-      fab.className = "track-fab";
+  let cls, html;
+
+  if (orders.length) {
+    const laSV = o => o.items.every(i => i.gia === 0);
+    const food = orders.filter(o => !laSV(o));
+    const sv = orders.filter(o => laSV(o) && o.trangThai !== "xong");
+    let tt = "track", text = "Theo dõi đơn";
+    if (food.some(o => o.trangThai === "dang_lam")) { tt = "cook"; text = "Đang chế biến"; }
+    else if (food.some(o => o.trangThai === "moi")) { tt = "new"; text = "Bếp đã nhận đơn"; }
+    else if (food.length && food.every(o => o.trangThai === "xong")) { tt = "done"; text = "Món đã sẵn sàng ✓"; }
+    if (tt === "track" || tt === "done") {
+      if (sv.some(o => /tính tiền/i.test(o.items[0].ten))) { tt = "bill"; text = "Đang chờ tính tiền"; }
+      else if (sv.some(o => /nhân viên/i.test(o.items[0].ten))) { tt = "staff"; text = "Đang gọi nhân viên"; }
     }
-    return;
+    cls = tt; html = `<span class="fab-dot"></span>${text} ↓`;
+  } else if (daThanhToan) {
+    cls = "done"; html = `<span class="fab-dot"></span>Đã thanh toán ✓`;
+  } else {
+    cls = "browse"; html = `<span class="fab-dot"></span>Xin mời chọn món`;   // khách mới vào, đang chọn
   }
 
-  const laSV = o => o.items.every(i => i.gia === 0);
-  const food = orders.filter(o => !laSV(o));
-  const sv = orders.filter(o => laSV(o) && o.trangThai !== "xong");
-
-  let tt = "track", text = "Theo dõi đơn";
-  if (food.some(o => o.trangThai === "dang_lam")) { tt = "cook"; text = "Đang chế biến"; }
-  else if (food.some(o => o.trangThai === "moi")) { tt = "new"; text = "Bếp đã nhận đơn"; }
-  else if (food.length && food.every(o => o.trangThai === "xong")) { tt = "done"; text = "Món đã sẵn sàng ✓"; }
-
-  // Nếu bếp không còn món đang xử lý, ưu tiên hiển thị yêu cầu phục vụ đang chờ
-  if (tt === "track" || tt === "done") {
-    if (sv.some(o => /tính tiền/i.test(o.items[0].ten))) { tt = "bill"; text = "Đang chờ tính tiền"; }
-    else if (sv.some(o => /nhân viên/i.test(o.items[0].ten))) { tt = "staff"; text = "Đang gọi nhân viên"; }
-  }
-
-  fab.className = "track-fab show " + tt;
-  fab.innerHTML = `<span class="fab-dot"></span>${text} ↓`;
-
-  // né thanh giỏ khi đang chọn món
+  fab.className = "track-fab show " + cls;
+  fab.innerHTML = html;
   const gb = document.getElementById("giobar");
   const cao = gb && gb.classList.contains("show") ? gb.offsetHeight : 0;
   fab.style.bottom = (cao ? cao + 12 : 16) + "px";
 }
 function xemDon() {
   rung(12);
+  const orders = window._orders || [];
   const card = document.getElementById("cardDaGoi");
-  if (card && card.style.display !== "none") {
-    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  if (orders.length && card && card.style.display !== "none") {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });   // có đơn → xem cuối trang
   } else if (daThanhToan) {
     moCamOn();
-  } else toast("Chưa có món nào đã gửi");
+  } else {
+    document.getElementById("menu").scrollIntoView({ behavior: "smooth", block: "start" });  // mời chọn món
+  }
 }
 
 /* Màn hình cảm ơn khi đã thanh toán (bàn được đóng) */
