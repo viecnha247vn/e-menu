@@ -4,100 +4,193 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Quán Việt — Gọi món</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --do: #7A1A1A;          /* sơn mài đỏ */
+    --do-sau: #5E1414;
+    --do-sang: #9A2B2B;
+    --dong: #C8A24B;        /* ánh đồng */
+    --dong-sang: #E7CE8E;
+    --kem: #F4EFE4;         /* nền kem */
+    --muc: #2A2320;         /* mực */
+    --muc-nhat: #8A7F72;
+    --vien: rgba(122,26,26,.10);
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 150px; }
+  body {
+    font-family: "Be Vietnam Pro", system-ui, sans-serif;
+    color: var(--muc); padding-bottom: 160px;
+    background:
+      radial-gradient(120% 60% at 50% -10%, #FBF7EE 0%, var(--kem) 45%, #ECE4D4 100%) fixed;
+  }
   .wrap { max-width: 600px; margin: 0 auto; }
+  button { touch-action: manipulation; font-family: inherit; }
+  button:active { transform: scale(.97); }
 
-  header { position: sticky; top: 0; z-index: 10; background: #7A1F1F; color: #fff;
-    padding: 14px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
-  header .logo { font-size: 20px; font-weight: 900; letter-spacing: 1px; }
-  header .tag { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 2px; }
+  /* ===== Thanh trên — sơn mài bóng ===== */
+  header {
+    position: sticky; top: 0; z-index: 20; overflow: hidden;
+    padding: 16px 20px 15px; text-align: center;
+    background: linear-gradient(180deg, #8C2222 0%, var(--do) 48%, var(--do-sau) 100%);
+    border-bottom: 1px solid rgba(200,162,75,.55);
+    box-shadow: 0 8px 26px rgba(94,20,20,.40);
+  }
+  header::before {  /* vệt bóng gương trên đỉnh */
+    content:""; position:absolute; inset:0 0 auto 0; height:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0));
+    pointer-events:none;
+  }
+  header .logo {
+    font-family: "Playfair Display", serif; font-weight: 800; font-size: 27px;
+    letter-spacing: .5px; line-height: 1.1;
+    color: #F6E6BC; text-shadow: 0 1px 0 rgba(0,0,0,.25), 0 0 18px rgba(231,206,142,.25);
+  }
+  header .tag {
+    margin-top: 4px; font-size: 10.5px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 4px; color: rgba(231,206,142,.85);
+  }
+  header .rule { /* gạch ánh đồng nhỏ giữa */
+    width: 46px; height: 2px; margin: 9px auto 0; border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--dong), transparent);
+  }
 
   .body { padding: 16px; }
-  .banner { display: flex; justify-content: space-between; align-items: center;
-    background: linear-gradient(135deg,#E8590C,#D9480F); color: #fff;
-    padding: 16px 20px; border-radius: 14px; margin-bottom: 12px; }
-  .banner .lab { font-size: 12px; opacity: .85; }
-  .banner .ban { font-size: 28px; font-weight: 900; }
-  .banner .tong { font-size: 22px; font-weight: 800; }
 
-  .quick { display: flex; gap: 10px; margin-bottom: 14px; }
-  .quick button { flex: 1; padding: 13px; border: 1px solid #E7D9C5; background: #fff;
-    border-radius: 12px; font-size: 14px; font-weight: 700; color: #7A1F1F; cursor: pointer; }
-  .quick button:active { background: #F6EEE3; }
+  /* ===== Thẻ "bàn / tạm tính" — sơn mài bóng ===== */
+  .banner {
+    position: relative; overflow: hidden;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 20px; border-radius: 16px; margin-bottom: 14px;
+    background: linear-gradient(135deg, #6E1818 0%, var(--do-sau) 100%);
+    border: 1px solid rgba(200,162,75,.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 12px 26px rgba(58,20,20,.28);
+  }
+  .banner::before {
+    content:""; position:absolute; inset:0 0 auto 0; height:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.14), transparent); pointer-events:none;
+  }
+  .banner .lab { font-size: 10.5px; text-transform: uppercase; letter-spacing: 2px; color: rgba(231,206,142,.8); }
+  .banner .ban { font-family: "Playfair Display", serif; font-size: 27px; font-weight: 800; color: var(--dong-sang); margin-top: 2px; }
+  .banner .tong { font-size: 23px; font-weight: 800; color: #fff; margin-top: 2px; }
 
-  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px;
-    box-shadow: 0 1px 4px rgba(0,0,0,.05); }
-  .card h3 { font-size: 16px; margin-bottom: 12px; }
+  /* ===== Nút nhanh — kính bóng ===== */
+  .quick { display: flex; gap: 11px; margin-bottom: 16px; }
+  .quick button {
+    flex: 1; padding: 14px; border-radius: 13px; cursor: pointer;
+    font-size: 14px; font-weight: 700; color: var(--do);
+    background: linear-gradient(180deg, #FFFFFF, #F4ECDD);
+    border: 1px solid rgba(200,162,75,.55);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 4px 14px rgba(122,26,26,.10);
+  }
+  .quick button:active { background: linear-gradient(180deg, #F4ECDD, #EFE6D4); }
 
-  .luot { border-left: 3px solid #F1DFC9; padding-left: 12px; margin-bottom: 16px; }
-  .luot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .luot-time { font-size: 12px; color: #999; }
-  .mon-row { display: flex; justify-content: space-between; font-size: 14px; padding: 3px 0; }
-  .mon-row b { color: #E8590C; }
-  .note-row { font-size: 12px; color: #B0641E; background: #FFF4E6; padding: 5px 9px;
-    border-radius: 8px; margin-top: 6px; }
-  .sv-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
-    color: #1864AB; background: #E7F0FA; padding: 8px 12px; border-radius: 10px; }
-  .sv-chip.done { color: #2B8A3E; background: #EBFBEE; }
+  /* ===== Thẻ kính ===== */
+  .card {
+    border-radius: 18px; padding: 18px; margin-bottom: 16px;
+    background: rgba(255,255,255,.72);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
+    border: 1px solid rgba(255,255,255,.7);
+    box-shadow: 0 10px 34px rgba(80,45,20,.10), inset 0 1px 0 rgba(255,255,255,.85);
+  }
+  .sec { font-family: "Playfair Display", serif; font-weight: 700; font-size: 21px; color: var(--do); }
+  .sec::after { content:""; display:block; width: 38px; height: 2px; margin-top: 7px; border-radius:2px;
+    background: linear-gradient(90deg, var(--dong), rgba(200,162,75,0)); }
+  .sec-sub { font-size: 12.5px; color: var(--muc-nhat); margin: 5px 0 14px; }
 
-  .steps { display: flex; align-items: center; margin-top: 10px; }
-  .step { flex: 1; text-align: center; position: relative; }
-  .step .dot { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto 4px;
-    display: flex; align-items: center; justify-content: center; font-size: 13px;
-    background: #E9E4DC; color: #aaa; border: 2px solid #E9E4DC; transition: .3s; }
-  .step .txt { font-size: 11px; color: #aaa; }
-  .step::before { content: ''; position: absolute; top: 13px; left: -50%; width: 100%;
-    height: 2px; background: #E9E4DC; z-index: 0; }
-  .step:first-child::before { display: none; }
-  .step.on .dot { background: #2B8A3E; color: #fff; border-color: #2B8A3E; }
-  .step.on .txt { color: #2B8A3E; font-weight: 700; }
-  .step.cur .dot { background: #E8590C; color: #fff; border-color: #E8590C;
-    box-shadow: 0 0 0 4px rgba(232,89,12,.2); }
-  .step.cur .txt { color: #E8590C; font-weight: 700; }
+  /* ===== Món trong thực đơn ===== */
+  .item { display: flex; align-items: center; gap: 13px; padding: 13px 2px; border-bottom: 1px solid var(--vien); }
+  .item:last-child { border-bottom: none; }
+  .item .ic { font-size: 30px; width: 54px; text-align: center; flex: none; }
+  .item .ic-img { width: 56px; height: 56px; border-radius: 12px; object-fit: cover; flex: none;
+    background: #efe7d8; border: 1px solid rgba(200,162,75,.35); box-shadow: 0 3px 10px rgba(80,45,20,.12); }
+  .item .ten { font-weight: 600; font-size: 15.5px; letter-spacing: .2px; }
+  .item .mota { font-size: 12px; color: var(--muc-nhat); margin: 2px 0; line-height: 1.35; }
+  .item .gia { font-size: 14.5px; font-weight: 700; color: var(--do); }
 
-  .item { display: flex; align-items: center; gap: 12px; padding: 12px 4px; border-bottom: 1px solid #F2EDE5; }
-  .item .ic { font-size: 26px; }
-  .item .ic-img { width: 52px; height: 52px; border-radius: 9px; object-fit: cover; flex: none; background: #f2ede5; }
-  .item .ten { font-weight: 700; font-size: 15px; }
-  .item .mota { font-size: 12px; color: #999; margin: 2px 0; }
-  .item .gia { font-size: 14px; font-weight: 700; color: #E8590C; }
-  .stepper { display: flex; align-items: center; gap: 8px; }
-  .stepper button { width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; }
-  button { touch-action: manipulation; }       /* bỏ trễ 300ms trên điện thoại */
-  button:active { transform: scale(.95); opacity: .9; }   /* nhấn là thấy phản hồi ngay */
-  .b-sub { border: 1px solid #ddd; background: #fff; }
-  .b-add { border: none; background: #E8590C; color: #fff; font-weight: 700; }
+  .stepper { display: flex; align-items: center; gap: 9px; flex: none; }
+  .stepper button { width: 34px; height: 34px; border-radius: 10px; font-size: 19px; cursor: pointer; line-height: 1; }
+  .b-sub { border: 1px solid rgba(122,26,26,.25); background: #fff; color: var(--do); }
+  .b-add {
+    border: none; color: #fff; font-weight: 700;
+    background: linear-gradient(180deg, var(--do-sang), var(--do));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 3px 9px rgba(122,26,26,.35);
+  }
   .so { font-weight: 800; min-width: 18px; text-align: center; }
 
-  .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
-    background: #7A1F1F; color: #fff; padding: 12px 16px; display: none; flex-direction: column;
-    gap: 10px; box-shadow: 0 -2px 12px rgba(0,0,0,.2); }
-  .giobar.show { display: flex; }
-  .giobar .note-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: none;
-    font-size: 14px; background: rgba(255,255,255,.15); color: #fff; }
-  .giobar .note-input::placeholder { color: rgba(255,255,255,.6); }
-  .giobar-row { display: flex; justify-content: space-between; align-items: center; }
-  .giobar .gui { background: #E8590C; color: #fff; border: none; padding: 12px 22px;
-    border-radius: 12px; font-size: 16px; font-weight: 800; cursor: pointer; }
+  /* ===== Món đã đặt (dưới cùng) ===== */
+  .luot { position: relative; padding: 12px 14px; margin-bottom: 12px; border-radius: 14px;
+    background: linear-gradient(180deg, #FFFDF8, #FBF5EA);
+    border: 1px solid rgba(200,162,75,.30); box-shadow: 0 3px 12px rgba(80,45,20,.06); }
+  .luot:last-child { margin-bottom: 0; }
+  .luot-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .luot-time { font-size: 11.5px; color: var(--muc-nhat); font-weight: 600; letter-spacing: .5px; }
+  .mon-row { display: flex; justify-content: space-between; font-size: 14.5px; padding: 4px 0; }
+  .mon-row b { color: var(--do); }
+  .note-row { font-size: 12.5px; color: #8A5A12; background: #FBEFD6; padding: 6px 10px; border-radius: 9px; margin-top: 7px; }
+  .sv-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700;
+    color: #1864AB; background: #E7F0FA; padding: 8px 13px; border-radius: 11px; }
+  .sv-chip.done { color: #2B7A3E; background: #E9F7EC; }
 
-  .toast { position: fixed; bottom: 170px; left: 50%; transform: translateX(-50%);
-    background: #2B8A3E; color: #fff; padding: 12px 22px; border-radius: 30px; font-weight: 700;
-    font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,.25); opacity: 0; transition: .3s; z-index: 50; }
-  .toast.show { opacity: 1; bottom: 180px; }
+  .steps { display: flex; align-items: flex-start; margin-top: 12px; }
+  .step { flex: 1; text-align: center; position: relative; }
+  .step .dot { width: 28px; height: 28px; border-radius: 50%; margin: 0 auto 5px;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+    background: #EBE3D4; color: #b3a892; border: 2px solid #EBE3D4; transition: .3s;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
+  .step .txt { font-size: 11px; color: var(--muc-nhat); }
+  .step::before { content: ''; position: absolute; top: 14px; left: -50%; width: 100%; height: 2px; background: #EBE3D4; z-index: 0; }
+  .step:first-child::before { display: none; }
+  .step.on .dot { background: linear-gradient(180deg,#37A24D,#2B7A3E); color: #fff; border-color: #2B7A3E; }
+  .step.on .txt { color: #2B7A3E; font-weight: 700; }
+  .step.cur .dot { background: linear-gradient(180deg,var(--do-sang),var(--do)); color: #fff; border-color: var(--do);
+    box-shadow: 0 0 0 4px rgba(122,26,26,.18), inset 0 1px 0 rgba(255,255,255,.3); }
+  .step.cur .txt { color: var(--do); font-weight: 700; }
+
+  .footer-note { text-align: center; color: #b9ab97; font-size: 10.5px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 8px 0 2px; }
+
+  /* ===== Giỏ — thanh dưới sơn mài bóng ===== */
+  .giobar { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: 0 auto;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); display: none; flex-direction: column; gap: 11px; z-index: 30;
+    background: linear-gradient(180deg, #8C2222, var(--do-sau));
+    border-top: 1px solid rgba(200,162,75,.5);
+    box-shadow: 0 -8px 26px rgba(40,15,15,.35); }
+  .giobar.show { display: flex; }
+  .giobar .note-input { width: 100%; padding: 11px 13px; border-radius: 11px; border: 1px solid rgba(231,206,142,.25);
+    font-size: 14px; font-family: inherit; background: rgba(255,255,255,.12); color: #fff; }
+  .giobar .note-input::placeholder { color: rgba(246,230,188,.6); }
+  .giobar-row { display: flex; justify-content: space-between; align-items: center; }
+  .giobar .gioSL { font-size: 12.5px; color: rgba(231,206,142,.9); letter-spacing: .3px; }
+  .giobar .gioTong { font-size: 21px; font-weight: 800; color: #fff; }
+  .giobar .gui {
+    color: #3a1d05; font-weight: 800; font-size: 16px; border: none; cursor: pointer;
+    padding: 13px 24px; border-radius: 13px;
+    background: linear-gradient(180deg, var(--dong-sang), var(--dong));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 5px 14px rgba(0,0,0,.3); }
+
+  .toast { position: fixed; bottom: 180px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(180deg,#2F8F44,#247135); color: #fff; padding: 12px 22px; border-radius: 30px;
+    font-weight: 700; font-size: 14px; box-shadow: 0 8px 22px rgba(0,0,0,.3); opacity: 0; transition: .3s; z-index: 50; }
+  .toast.show { opacity: 1; bottom: 190px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } button:active { transform: none; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">QUÁN VIỆT</div>
-    <div class="tag">Thực đơn điện tử</div>
+    <div class="logo">Quán Việt</div>
+    <div class="tag">Thực đơn · Gọi món tại bàn</div>
+    <div class="rule"></div>
   </header>
   <div class="body">
     <div class="banner">
       <div>
-        <div class="lab">Bạn đang ngồi</div>
+        <div class="lab">Bàn của bạn</div>
         <div class="ban" id="banSo">Bàn —</div>
       </div>
       <div style="text-align:right">
@@ -107,21 +200,23 @@
     </div>
 
     <div class="quick">
-      <button onclick="goiNhanVien()">📣 Gọi nhân viên</button>
-      <button onclick="xinTinhTien()">🧾 Xin tính tiền</button>
-    </div>
-
-    <div class="card" id="cardDaGoi" style="display:none">
-      <h3>📋 Tiến trình món đã gọi</h3>
-      <div id="daGoi"></div>
+      <button onclick="goiNhanVien()">Gọi nhân viên</button>
+      <button onclick="xinTinhTien()">Xin tính tiền</button>
     </div>
 
     <div class="card">
-      <h3>🍽️ Thực đơn — chạm + để gọi thêm</h3>
+      <h3 class="sec">Thực đơn</h3>
+      <p class="sec-sub">Chạm dấu + để thêm món vào giỏ</p>
       <div id="menu"></div>
     </div>
 
-    <div style="text-align:center;color:#bbb;font-size:11px;padding:6px">phiên bản 5.0</div>
+    <div class="card" id="cardDaGoi" style="display:none">
+      <h3 class="sec">Món đã đặt</h3>
+      <p class="sec-sub">Danh sách món của bàn và tiến trình từng món</p>
+      <div id="daGoi"></div>
+    </div>
+
+    <div class="footer-note">Quán Việt · phiên bản 6.0</div>
   </div>
 </div>
 
@@ -129,8 +224,8 @@
   <input id="ghiChu" class="note-input" placeholder="Ghi chú cho bếp (vd: ít cay, không hành)…" maxlength="120">
   <div class="giobar-row">
     <div>
-      <div style="font-size:13px;opacity:.85" id="gioSL">0 món</div>
-      <div style="font-size:20px;font-weight:800" id="gioTong">0đ</div>
+      <div class="gioSL" id="gioSL">0 món</div>
+      <div class="gioTong" id="gioTong">0đ</div>
     </div>
     <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
   </div>
