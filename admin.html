@@ -4,61 +4,89 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quản trị thực đơn — Quán Việt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --do:#7A1A1A; --do-sau:#5E1414; --do-sang:#9A2B2B;
+    --dong:#C8A24B; --dong-sang:#E7CE8E; --kem:#F4EFE4; --muc:#2A2320; --muc-nhat:#8A7F72;
+    --vien:rgba(122,26,26,.10);
+  }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #2D2A26; padding-bottom: 40px; }
+  body { font-family: "Be Vietnam Pro", system-ui, sans-serif; color: var(--muc); padding-bottom: 50px;
+    background: radial-gradient(120% 50% at 50% -10%, #FBF7EE 0%, var(--kem) 45%, #ECE4D4 100%) fixed; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  button { touch-action: manipulation; font-family: inherit; }
+  button:active { transform: scale(.97); }
 
-  header { background: #7A1F1F; color: #fff; padding: 14px 18px; }
-  header .logo { font-size: 20px; font-weight: 900; }
-  header .tag { font-size: 11px; opacity: .8; text-transform: uppercase; letter-spacing: 2px; }
+  header { position: relative; overflow: hidden; padding: 17px 20px 16px; text-align: center;
+    background: linear-gradient(180deg,#8C2222 0%, var(--do) 48%, var(--do-sau) 100%);
+    border-bottom: 1px solid rgba(200,162,75,.55); box-shadow: 0 8px 26px rgba(94,20,20,.40); }
+  header::before { content:""; position:absolute; inset:0 0 auto 0; height:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), transparent); pointer-events:none; }
+  header .logo { font-family:"Playfair Display",serif; font-weight:800; font-size:26px; color:#F6E6BC;
+    text-shadow:0 1px 0 rgba(0,0,0,.25); }
+  header .tag { margin-top:3px; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:4px; color:rgba(231,206,142,.85); }
+  header .rule { width:46px; height:2px; margin:9px auto 0; border-radius:2px; background:linear-gradient(90deg,transparent,var(--dong),transparent); }
 
-  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
-  h3 { font-size: 16px; margin-bottom: 12px; }
-  label { display: block; font-size: 12px; color: #666; font-weight: 600; margin: 10px 0 4px; }
-  input, textarea, select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 9px; font-size: 15px; font-family: inherit; background: #fff; }
-  textarea { resize: vertical; min-height: 52px; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  .row > div { flex: 1; min-width: 120px; }
+  .card { border-radius:18px; padding:18px; margin-bottom:16px;
+    background:rgba(255,255,255,.74); -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%);
+    border:1px solid rgba(255,255,255,.7); box-shadow:0 10px 34px rgba(80,45,20,.10), inset 0 1px 0 rgba(255,255,255,.85); }
+  h3 { font-family:"Playfair Display",serif; font-weight:700; font-size:20px; color:var(--do); margin-bottom:14px; }
+  label { display:block; font-size:12px; color:var(--muc-nhat); font-weight:600; margin:11px 0 4px; }
+  input, textarea, select { width:100%; padding:11px 13px; border:1px solid rgba(122,26,26,.18); border-radius:10px;
+    font-size:15px; font-family:inherit; background:#fff; color:var(--muc); }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:var(--dong); box-shadow:0 0 0 3px rgba(200,162,75,.18); }
+  textarea { resize:vertical; min-height:54px; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:120px; }
 
-  .btn { background: #E8590C; color: #fff; border: none; padding: 12px 20px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
-  .btn.ghost { background: #fff; color: #7A1F1F; border: 1px solid #ddd; }
-  .btn.sm { padding: 8px 14px; font-size: 13px; }
-  .btn.del { background: #fff; color: #C92A2A; border: 1px solid #f0c5c5; }
-  .btn.row-actions { margin-top: 0; }
+  .btn { color:#fff; border:none; padding:12px 20px; border-radius:11px; font-size:15px; font-weight:700; cursor:pointer;
+    background:linear-gradient(180deg,var(--do-sang),var(--do));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 4px 12px rgba(122,26,26,.28); }
+  .btn.ghost { background:linear-gradient(180deg,#fff,#F4ECDD); color:var(--do); border:1px solid rgba(200,162,75,.5);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9); }
+  .btn.sm { padding:8px 14px; font-size:13px; border-radius:9px; }
+  .btn.del { background:#fff; color:#B22; border:1px solid #f0c5c5; box-shadow:none; }
 
-  .preview { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; border: 1px solid #eee; background: #f4f0ea; }
-  .photoWrap { display: flex; gap: 12px; align-items: center; }
+  .preview { width:80px; height:80px; border-radius:12px; object-fit:cover; border:1px solid rgba(200,162,75,.4); background:#f1e9da; }
+  .photoWrap { display:flex; gap:12px; align-items:center; }
 
-  .item { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #F2EDE5; }
-  .item:last-child { border-bottom: none; }
-  .item .thumb { width: 56px; height: 56px; border-radius: 10px; object-fit: cover; background: #f4f0ea; display: flex; align-items: center; justify-content: center; font-size: 28px; flex: none; }
-  .item .info { flex: 1; min-width: 0; }
-  .item .ten { font-weight: 700; }
-  .item .gia { color: #E8590C; font-weight: 700; font-size: 14px; }
-  .item .mota { font-size: 12px; color: #999; }
-  .item.an { opacity: .5; }
-  .item .acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+  .item { display:flex; gap:13px; align-items:center; padding:13px 0; border-bottom:1px solid var(--vien); }
+  .item:last-child { border-bottom:none; }
+  .item .thumb { width:58px; height:58px; border-radius:12px; object-fit:cover; background:#f1e9da; display:flex; align-items:center; justify-content:center; font-size:28px; flex:none; border:1px solid rgba(200,162,75,.3); }
+  .item .info { flex:1; min-width:0; }
+  .item .ten { font-weight:600; }
+  .item .gia { color:var(--do); font-weight:700; font-size:14.5px; }
+  .item .mota { font-size:12px; color:var(--muc-nhat); }
+  .item.an { opacity:.5; }
+  .item .acts { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
 
-  .pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; background: #EBFBEE; color: #2B8A3E; }
-  .pill.off { background: #F1F0EE; color: #999; }
+  .pill { font-size:11px; font-weight:700; padding:2px 9px; border-radius:20px; background:#E9F7EC; color:#2B7A3E; }
+  .pill.off { background:#F1F0EE; color:#999; }
 
-  .pinbox { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
-  .pinbox .panel { background: #fff; padding: 26px; border-radius: 16px; width: 320px; text-align: center; }
-  .pinbox input { text-align: center; letter-spacing: 2px; margin: 14px 0; }
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #2B8A3E; color: #fff; padding: 12px 22px; border-radius: 30px; font-weight: 700; font-size: 14px; opacity: 0; transition: .3s; z-index: 50; }
-  .toast.show { opacity: 1; }
-  .muted { font-size: 12px; color: #999; }
-  .grp-head { font-weight: 800; color: #7A1F1F; font-size: 14px; margin: 16px 0 4px;
-    padding-bottom: 5px; border-bottom: 1px solid #f0e6d8; }
-  .grp-head:first-child { margin-top: 0; }
-  .grp-head span { color: #C8A24B; font-weight: 700; }
+  .pinbox { position:fixed; inset:0; background:rgba(40,15,15,.6); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .pinbox .panel { background:linear-gradient(180deg,#FFFDF8,#F5EEE0); padding:28px; border-radius:18px; width:330px; text-align:center;
+    border:1px solid rgba(200,162,75,.4); box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .pinbox h3 { margin-bottom:6px; }
+  .pinbox input { text-align:center; letter-spacing:2px; margin:14px 0; }
+  .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:linear-gradient(180deg,#2F8F44,#247135);
+    color:#fff; padding:12px 22px; border-radius:30px; font-weight:700; font-size:14px; opacity:0; transition:.3s; z-index:120; box-shadow:0 8px 22px rgba(0,0,0,.3); }
+  .toast.show { opacity:1; }
+  .muted { font-size:12px; color:var(--muc-nhat); }
+  .grp-head { font-family:"Playfair Display",serif; font-weight:700; color:var(--do); font-size:17px; margin:18px 0 4px;
+    padding-bottom:6px; border-bottom:1px solid rgba(200,162,75,.4); }
+  .grp-head:first-child { margin-top:0; }
+  .grp-head span { color:var(--dong); font-weight:700; font-size:12px; }
 </style>
 </head>
 <body>
 <header>
-  <div class="logo">QUÁN VIỆT</div>
+  <div class="logo">Quán Việt</div>
   <div class="tag">Quản trị thực đơn</div>
+  <div class="rule"></div>
 </header>
 
 <div class="wrap" id="app" style="display:none">
