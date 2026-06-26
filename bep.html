@@ -202,6 +202,7 @@ function ting() {
 }
 
 let bepDangTai = false;
+let choXacNhan = {};   // {id: {tt, t}} trạng thái vừa bấm, chờ máy chủ xác nhận
 async function taiDon() {
   if (bepDangTai) return;
   bepDangTai = true;
@@ -211,6 +212,19 @@ async function taiDon() {
       if (d.doanhThu) document.getElementById("dtHomNay").textContent =
         fmt(d.doanhThu.tong) + " · " + d.doanhThu.soBan + " bàn";
       const orders = d.orders.sort((a,b)=>a.luc-b.luc);
+
+      // Hợp nhất với thao tác vừa bấm: nếu máy chủ chưa kịp cập nhật thì giữ trạng thái mới
+      const now = Date.now();
+      orders.forEach(o => {
+        const p = choXacNhan[o.id];
+        if (!p) return;
+        if (o.trangThai === p.tt) delete choXacNhan[o.id];     // máy chủ đã xác nhận
+        else if (now - p.t < 12000) o.trangThai = p.tt;        // chưa kịp → giữ trạng thái vừa bấm
+        else delete choXacNhan[o.id];                          // quá lâu thì thôi
+      });
+      const conLai = new Set(orders.map(o => o.id));
+      Object.keys(choXacNhan).forEach(id => { if (!conLai.has(id)) delete choXacNhan[id]; });
+
       donHienTai = orders;
       const coDonMoi = orders.some(o => !seen.has(o.id));
       if (!firstLoad && coDonMoi) ting();
@@ -283,15 +297,15 @@ function ticket(o) {
     </div>`;
 }
 
-async function doi(id, trangThai) {
-  // đổi ngay trên màn hình (lạc quan), rồi gửi ngầm
+function doi(id, trangThai) {
+  // đổi ngay trên màn hình + đánh dấu chờ máy chủ xác nhận (chống nhảy ngược)
+  choXacNhan[id] = { tt: trangThai, t: Date.now() };
   const o = donHienTai.find(x => x.id === id);
   if (o) { o.trangThai = trangThai; ve(donHienTai); }
-  try {
-    const d = await jsonp({ action:"update", id, trangThai, pin:PIN });
-    if (!d.ok) { alert(d.error || "Không đổi được"); taiDon(); return; }
-    setTimeout(taiDon, 500);
-  } catch(e){ alert("Lỗi mạng: " + e); taiDon(); }
+  jsonp({ action:"update", id, trangThai, pin:PIN }).then(d => {
+    if (!d || !d.ok) { delete choXacNhan[id]; alert((d && d.error) || "Không đổi được"); }
+    taiDon();
+  }).catch(e => { delete choXacNhan[id]; alert("Lỗi mạng: " + e); taiDon(); });
 }
 
 async function dongBan(ban, tong) {
