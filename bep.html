@@ -174,10 +174,16 @@ function vaoBep() {
   try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
   document.getElementById("pinbox").style.display = "none";
   setTimeout(ting, 300); // kêu thử 1 tiếng để xác nhận loa đã bật
-  taiDon();
-  setInterval(taiDon, 4000);
+  taiDon().then(lenLich);
 }
 document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") vaoBep(); });
+// Làm mới đều, tự né gọi chồng; làm mới ngay khi quay lại màn hình
+function lenLich() {
+  clearTimeout(window._timer);
+  window._timer = setTimeout(async () => { await taiDon(); lenLich(); }, 2500);
+}
+document.addEventListener("visibilitychange", () => { if (!document.hidden && PIN) { taiDon(); lenLich(); } });
+window.addEventListener("focus", () => { if (PIN) taiDon(); });
 
 /* Chuông báo đơn mới */
 function ting() {
@@ -195,20 +201,25 @@ function ting() {
   } catch(e){}
 }
 
+let bepDangTai = false;
 async function taiDon() {
+  if (bepDangTai) return;
+  bepDangTai = true;
   try {
     const d = await jsonp({ action:"list" });
-    if (!d.ok) return;
-    if (d.doanhThu) document.getElementById("dtHomNay").textContent =
-      fmt(d.doanhThu.tong) + " · " + d.doanhThu.soBan + " bàn";
-    const orders = d.orders.sort((a,b)=>a.luc-b.luc);
-    donHienTai = orders;
-    const coDonMoi = orders.some(o => !seen.has(o.id));
-    if (!firstLoad && coDonMoi) ting();
-    orders.forEach(o => seen.add(o.id));
-    firstLoad = false;
-    ve(orders);
+    if (d && d.ok) {
+      if (d.doanhThu) document.getElementById("dtHomNay").textContent =
+        fmt(d.doanhThu.tong) + " · " + d.doanhThu.soBan + " bàn";
+      const orders = d.orders.sort((a,b)=>a.luc-b.luc);
+      donHienTai = orders;
+      const coDonMoi = orders.some(o => !seen.has(o.id));
+      if (!firstLoad && coDonMoi) ting();
+      orders.forEach(o => seen.add(o.id));
+      firstLoad = false;
+      ve(orders);
+    }
   } catch(e){ /* giữ màn hình cũ */ }
+  finally { bepDangTai = false; }
 }
 
 function ve(orders) {
