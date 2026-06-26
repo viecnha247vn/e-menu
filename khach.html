@@ -192,6 +192,28 @@
   .toast.show { opacity: 1; bottom: 190px; }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } button:active { transform: none; } }
+
+  /* ===== Modal thanh toán VietQR ===== */
+  .modal { position: fixed; inset: 0; z-index: 60; display: none; align-items: flex-end; justify-content: center;
+    background: rgba(30,12,12,.5); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+  .modal.show { display: flex; }
+  .sheet { width: 100%; max-width: 600px; padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+    background: linear-gradient(180deg,#FFFDF8,#F5EEE0); border-radius: 22px 22px 0 0;
+    box-shadow: 0 -12px 40px rgba(0,0,0,.32); animation: up .25s ease; }
+  @keyframes up { from { transform: translateY(40px); opacity: .4 } to { transform: none; opacity: 1 } }
+  .sheet-grab { width: 44px; height: 5px; border-radius: 3px; background: rgba(122,26,26,.25); margin: 2px auto 14px; }
+  .pay-total { text-align: center; font-size: 12.5px; color: var(--muc-nhat); letter-spacing: .5px; }
+  .pay-total b { display: block; font-family: "Playfair Display", serif; font-size: 32px; font-weight: 800; color: var(--do); margin-top: 4px; }
+  .qr { display: block; width: 250px; max-width: 72%; margin: 14px auto 12px; border-radius: 16px;
+    background: #fff; padding: 10px; border: 1px solid rgba(200,162,75,.4); box-shadow: 0 8px 26px rgba(80,45,20,.14); }
+  .bank-info { text-align: center; font-size: 13.5px; color: var(--muc); line-height: 1.55; margin-bottom: 8px; }
+  .bank-info .nm { font-weight: 700; }
+  .bank-info .stk { font-size: 16px; font-weight: 800; color: var(--do); letter-spacing: .5px; }
+  .qr-note { font-size: 12px; color: var(--muc-nhat); text-align: center; margin: 6px 16px 14px; line-height: 1.5; }
+  .pay-act { width: 100%; color: #3a1d05; font-weight: 800; font-size: 15px; border: none; cursor: pointer;
+    padding: 14px; border-radius: 13px; background: linear-gradient(180deg,var(--dong-sang),var(--dong));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 5px 14px rgba(0,0,0,.18); }
+  .btn-close { width: 100%; margin-top: 8px; background: transparent; border: none; color: var(--muc-nhat); font-size: 14px; padding: 10px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -215,7 +237,7 @@
 
     <div class="quick">
       <button onclick="goiNhanVien()">Gọi nhân viên</button>
-      <button onclick="xinTinhTien()">Xin tính tiền</button>
+      <button onclick="moPay()">Thanh toán</button>
     </div>
 
     <div class="card">
@@ -230,7 +252,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.3</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.4</div>
   </div>
 </div>
 
@@ -243,6 +265,18 @@
       <div class="gioTong" id="gioTong">0đ</div>
     </div>
     <button class="gui" onclick="guiDi()">Gửi vào bếp →</button>
+  </div>
+</div>
+
+<div class="modal" id="modalPay" onclick="if(event.target===this)dongPay()">
+  <div class="sheet">
+    <div class="sheet-grab"></div>
+    <h3 class="sec">Thanh toán</h3>
+    <p class="sec-sub">Quét mã bằng app ngân hàng để chuyển khoản</p>
+    <div class="pay-total">Tổng cần thanh toán<b id="payTong">0đ</b></div>
+    <div id="payQR"></div>
+    <button class="pay-act" onclick="baoTinhTien()">Báo nhân viên ra tính tiền</button>
+    <button class="btn-close" onclick="dongPay()">Đóng</button>
   </div>
 </div>
 
@@ -386,11 +420,45 @@ function goiNhanVien() {
   toast("Đã gọi nhân viên ✓");           // hiện ngay
   guiYeuCauNgam([{ ten:"📣 Gọi nhân viên", gia:0, soLuong:1 }], "");
 }
-function xinTinhTien() {
+
+/* ===== Thanh toán VietQR ===== */
+let CAUHINH = null;
+async function taiCauHinh() {
+  const d = await jsonp({ action:"cau_hinh" });
+  if (d && d.ok) CAUHINH = d;
+}
+function moPay() {
+  rung(20);
+  const tong = tinhTong(window._orders || []);
+  if (tong <= 0) { toast("Chưa có món nào để thanh toán"); return; }
+  document.getElementById("payTong").textContent = fmt(tong);
+  const box = document.getElementById("payQR");
+  const b = CAUHINH && CAUHINH.bank ? CAUHINH.bank : null;
+  if (b && b.nh && b.stk) {
+    const noiDung = "Ban " + BAN;
+    const url = "https://img.vietqr.io/image/" + encodeURIComponent(b.nh) + "-" + encodeURIComponent(b.stk)
+      + "-compact2.png?amount=" + tong + "&addInfo=" + encodeURIComponent(noiDung)
+      + "&accountName=" + encodeURIComponent(b.ten || "");
+    box.innerHTML =
+      `<img class="qr" src="${url}" alt="VietQR" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'qr-note',textContent:'Không tải được mã QR, kiểm tra mạng.'}))">
+       <div class="bank-info">
+         <div class="nm">${esc(b.ten || "")}</div>
+         <div class="stk">${esc(b.stk)}</div>
+         <div>${esc(b.nh)}</div>
+       </div>
+       <div class="qr-note">Nội dung chuyển khoản: <b>Ban ${esc(BAN)}</b><br>Chuyển xong, nhân viên sẽ xác nhận và dọn bàn.</div>`;
+  } else {
+    box.innerHTML = `<div class="qr-note">Quán chưa cài mã QR chuyển khoản.<br>Bấm nút dưới để nhân viên ra tính tiền giúp bạn.</div>`;
+  }
+  document.getElementById("modalPay").classList.add("show");
+}
+function dongPay() { document.getElementById("modalPay").classList.remove("show"); }
+function baoTinhTien() {
   rung(28);
   const tong = tinhTong(window._orders || []);
-  toast("Đã gửi yêu cầu tính tiền ✓");    // hiện ngay
+  toast("Đã báo nhân viên ✓");
   guiYeuCauNgam([{ ten:"🧾 Xin tính tiền", gia:0, soLuong:1 }], "Tạm tính: " + fmt(tong));
+  dongPay();
 }
 
 function tinhTong(orders) {
@@ -442,6 +510,7 @@ function veTienTrinh(orders) {
 }
 
 taiMenu();
+taiCauHinh();
 taiDon();
 setInterval(taiDon, 5000);
 </script>
