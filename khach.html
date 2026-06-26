@@ -218,15 +218,15 @@
   .tc-edit { flex: none; color: var(--dong); font-size: 15px; }
 
   /* Chia đều trong modal thanh toán */
-  .pay-split { margin: 4px 0 14px; }
+  .pay-split { margin: 10px 0 8px; }
   .ps-lab { font-size: 12.5px; color: var(--muc-nhat); font-weight: 600; margin-bottom: 8px; }
   .ps-btns { display: flex; gap: 8px; }
   .ps-btn { flex: 1; padding: 9px 4px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer;
     color: var(--do); background: linear-gradient(180deg,#fff,#F4ECDD); border: 1px solid rgba(200,162,75,.45); }
   .ps-btn.on { color: #fff; background: linear-gradient(180deg,var(--do-sang),var(--do)); border-color: var(--do);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
-  .ps-each { text-align: center; font-size: 14px; font-weight: 700; color: var(--do); margin-top: 11px; }
-  .ps-custom { display: flex; align-items: center; gap: 10px; margin-top: 11px; font-size: 12.5px; color: var(--muc-nhat); font-weight: 600; }
+  .ps-each { text-align: center; font-size: 14px; font-weight: 700; color: var(--do); margin-top: 9px; }
+  .ps-custom { display: flex; align-items: center; gap: 10px; margin-top: 9px; font-size: 12.5px; color: var(--muc-nhat); font-weight: 600; }
   .ps-custom span { flex: none; }
   .ps-input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid rgba(122,26,26,.18); border-radius: 10px;
     font-size: 15px; font-family: inherit; background: #fff; text-align: center; font-weight: 700; color: var(--do); }
@@ -305,23 +305,21 @@
   .modal { position: fixed; inset: 0; z-index: 60; display: none; align-items: flex-end; justify-content: center;
     background: rgba(30,12,12,.5); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
   .modal.show { display: flex; }
-  .sheet { width: 100%; max-width: 600px; padding: 16px 18px calc(18px + env(safe-area-inset-bottom));
+  .sheet { width: 100%; max-width: 600px; padding: 12px 18px calc(14px + env(safe-area-inset-bottom));
     background: linear-gradient(180deg,#FFFDF8,#F5EEE0); border-radius: 22px 22px 0 0;
     box-shadow: 0 -12px 40px rgba(0,0,0,.32); animation: up .25s ease; }
   @keyframes up { from { transform: translateY(40px); opacity: .4 } to { transform: none; opacity: 1 } }
-  .sheet-grab { width: 44px; height: 5px; border-radius: 3px; background: rgba(122,26,26,.25); margin: 2px auto 14px; }
-  .pay-total { text-align: center; font-size: 12.5px; color: var(--muc-nhat); letter-spacing: .5px; }
-  .pay-total b { display: block; font-family: "Playfair Display", serif; font-size: 32px; font-weight: 800; color: var(--do); margin-top: 4px; }
-  .qr { display: block; width: 250px; max-width: 72%; margin: 14px auto 12px; border-radius: 16px;
-    background: #fff; padding: 10px; border: 1px solid rgba(200,162,75,.4); box-shadow: 0 8px 26px rgba(80,45,20,.14); }
-  .bank-info { text-align: center; font-size: 13.5px; color: var(--muc); line-height: 1.55; margin-bottom: 8px; }
-  .bank-info .nm { font-weight: 700; }
-  .bank-info .stk { font-size: 16px; font-weight: 800; color: var(--do); letter-spacing: .5px; }
-  .qr-note { font-size: 12px; color: var(--muc-nhat); text-align: center; margin: 6px 16px 14px; line-height: 1.5; }
+  .sheet-grab { width: 44px; height: 5px; border-radius: 3px; background: rgba(122,26,26,.25); margin: 2px auto 10px; }
+  .pay-total { text-align: center; font-size: 12px; color: var(--muc-nhat); letter-spacing: .5px; }
+  .pay-total b { display: block; font-family: "Playfair Display", serif; font-size: 28px; font-weight: 800; color: var(--do); margin-top: 1px; }
+  .qr { display: block; width: 210px; max-width: 62%; margin: 10px auto 6px; border-radius: 14px;
+    background: #fff; padding: 8px; border: 1px solid rgba(200,162,75,.4); box-shadow: 0 8px 22px rgba(80,45,20,.13); }
+  .bank-info { display: none; }
+  .qr-note { font-size: 11.5px; color: var(--muc-nhat); text-align: center; margin: 2px 8px 10px; line-height: 1.45; }
   .pay-act { width: 100%; color: #3a1d05; font-weight: 800; font-size: 15px; border: none; cursor: pointer;
-    padding: 14px; border-radius: 13px; background: linear-gradient(180deg,var(--dong-sang),var(--dong));
+    padding: 13px; border-radius: 13px; background: linear-gradient(180deg,var(--dong-sang),var(--dong));
     box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 5px 14px rgba(0,0,0,.18); }
-  .btn-close { width: 100%; margin-top: 8px; background: transparent; border: none; color: var(--muc-nhat); font-size: 14px; padding: 10px; cursor: pointer; }
+  .btn-close { width: 100%; margin-top: 4px; background: transparent; border: none; color: var(--muc-nhat); font-size: 14px; padding: 8px; cursor: pointer; }
   .done-ic { font-size: 52px; text-align: center; margin: 4px 0 2px; }
   .done-tit { font-family: "Playfair Display", serif; font-size: 27px; font-weight: 800; color: var(--do); text-align: center; }
   .done-sub { text-align: center; color: var(--muc-nhat); font-size: 14.5px; line-height: 1.6; margin: 8px 0 16px; }
@@ -378,7 +376,7 @@
       <button class="ve-menu" onclick="quayVeMenu()">↑ Quay về thực đơn</button>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.6</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.7</div>
   </div>
 </div>
 
@@ -399,8 +397,7 @@
 <div class="modal" id="modalPay" onclick="if(event.target===this)dongPay()">
   <div class="sheet">
     <div class="sheet-grab"></div>
-    <h3 class="sec" id="payTitle">Thanh toán</h3>
-    <p class="sec-sub">Quét mã bằng app ngân hàng để chuyển khoản</p>
+    <h3 class="sec" id="payTitle" style="margin-bottom:6px">Thanh toán</h3>
     <div class="pay-total">Tổng cần thanh toán<b id="payTong">0đ</b></div>
     <div class="pay-split" id="paySplit" style="display:none">
       <div class="ps-lab">Chia đều cho:</div>
@@ -666,12 +663,7 @@ function veQR() {
       + "&accountName=" + encodeURIComponent(b.ten || "");
     box.innerHTML =
       `<img class="qr" src="${url}" alt="VietQR" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'qr-note',textContent:'Không tải được mã QR, kiểm tra mạng.'}))">
-       <div class="bank-info">
-         <div class="nm">${esc(b.ten || "")}</div>
-         <div class="stk">${esc(b.stk)}</div>
-         <div>${esc(b.nh)}</div>
-       </div>
-       <div class="qr-note">Nội dung: <b>${esc(info)}</b>${paySoNguoi>1 ? "<br>Mỗi người quét và chuyển <b>"+fmt(each)+"</b>" : ""}<br>Chuyển xong, nhân viên sẽ xác nhận và dọn bàn.</div>`;
+       <div class="qr-note">Nội dung CK: <b>${esc(info)}</b> · Chuyển xong nhân viên sẽ xác nhận.</div>`;
   } else {
     box.innerHTML = `<div class="qr-note">Quán chưa cài mã QR chuyển khoản.<br>Bấm nút dưới để nhân viên ra tính tiền giúp bạn.</div>`;
   }
