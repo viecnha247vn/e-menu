@@ -101,6 +101,15 @@
     background: linear-gradient(90deg, var(--dong), rgba(200,162,75,0)); }
   .sec-sub { font-size: 12.5px; color: var(--muc-nhat); margin: 5px 0 14px; }
 
+  /* ===== Tiêu đề nhóm món ===== */
+  .menu-group { display: flex; align-items: baseline; justify-content: space-between;
+    margin: 20px 0 4px; padding-bottom: 7px; border-bottom: 1px solid rgba(200,162,75,.4); }
+  .menu-group:first-child { margin-top: 4px; }
+  .menu-group span { font-family: "Playfair Display", serif; font-weight: 700; font-size: 18px;
+    color: var(--do); letter-spacing: .3px; }
+  .menu-group i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--dong);
+    text-transform: uppercase; letter-spacing: 1.5px; }
+
   /* ===== Món trong thực đơn ===== */
   .item { display: flex; align-items: center; gap: 13px; padding: 13px 2px; border-bottom: 1px solid var(--vien); }
   .item:last-child { border-bottom: none; }
@@ -206,7 +215,7 @@
 
     <div class="card">
       <h3 class="sec">Thực đơn</h3>
-      <p class="sec-sub">Chạm dấu + để thêm món vào giỏ</p>
+      <p class="sec-sub">Chọn theo từng phần · chạm + để thêm vào giỏ</p>
       <div id="menu"></div>
     </div>
 
@@ -216,7 +225,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.1</div>
+    <div class="footer-note">Quán Việt · phiên bản 6.2</div>
   </div>
 </div>
 
@@ -279,10 +288,27 @@ async function taiMenu() {
 
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
 
+const NHOM_THUTU = ["Khai vị", "Món chính", "Tráng miệng", "Đồ uống"];
+
 function veMenu() {
   const box = document.getElementById("menu");
   if (!MENU.length) { box.innerHTML = `<div style="text-align:center;color:#bbb;padding:20px">Đang tải thực đơn…</div>`; return; }
-  box.innerHTML = MENU.map(m => `
+  // gom theo nhóm
+  const nhomMap = {};
+  MENU.forEach(m => { const k = m.nhom || "Món chính"; (nhomMap[k] = nhomMap[k] || []).push(m); });
+  const thuTuNhom = [...NHOM_THUTU, ...Object.keys(nhomMap).filter(k => !NHOM_THUTU.includes(k))];
+  let html = "";
+  thuTuNhom.forEach(nhom => {
+    const ds = nhomMap[nhom];
+    if (!ds || !ds.length) return;
+    html += `<div class="menu-group"><span>${esc(nhom)}</span><i>${ds.length} món</i></div>`;
+    html += ds.map(m => itemHTML(m)).join("");
+  });
+  box.innerHTML = html;
+}
+
+function itemHTML(m) {
+  return `
     <div class="item">
       ${m.anh
         ? `<img class="ic-img" src="${esc(m.anh)}" alt="" onerror="this.style.display='none'">`
@@ -293,7 +319,7 @@ function veMenu() {
         <div class="gia">${fmt(m.gia)}</div>
       </div>
       <div class="stepper" id="st-${esc(m.id)}">${stepperHTML(m)}</div>
-    </div>`).join("");
+    </div>`;
 }
 
 function stepperHTML(m) {
