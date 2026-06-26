@@ -175,22 +175,24 @@ async function taiMenu() {
   veMenu();
 }
 
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+
 function veMenu() {
   const box = document.getElementById("menu");
   if (!MENU.length) { box.innerHTML = `<div style="text-align:center;color:#bbb;padding:20px">Đang tải thực đơn…</div>`; return; }
   box.innerHTML = MENU.map(m => `
     <div class="item">
       ${m.anh
-        ? `<img class="ic-img" src="${m.anh}" alt="" onerror="this.outerHTML='<span class=\\'ic\\'>${m.icon||'🍽️'}</span>'">`
-        : `<span class="ic">${m.icon || m.ic || '🍽️'}</span>`}
+        ? `<img class="ic-img" src="${esc(m.anh)}" alt="" onerror="this.style.display='none'">`
+        : `<span class="ic">${esc(m.icon || m.ic || '🍽️')}</span>`}
       <div style="flex:1;min-width:0">
-        <div class="ten">${m.ten}</div>
-        <div class="mota">${m.mota || ''}</div>
+        <div class="ten">${esc(m.ten)}</div>
+        <div class="mota">${esc(m.mota || '')}</div>
         <div class="gia">${fmt(m.gia)}</div>
       </div>
       <div class="stepper">
-        ${gio[m.id] ? `<button class="b-sub" onclick="bot('${m.id}')">−</button><span class="so">${gio[m.id]}</span>` : ``}
-        <button class="b-add" onclick="them('${m.id}')">+</button>
+        ${gio[m.id] ? `<button class="b-sub" onclick="bot('${esc(m.id)}')">−</button><span class="so">${gio[m.id]}</span>` : ``}
+        <button class="b-add" onclick="them('${esc(m.id)}')">+</button>
       </div>
     </div>`).join("");
 }
