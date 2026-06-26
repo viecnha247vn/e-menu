@@ -36,8 +36,8 @@
     padding: 16px 20px 15px; text-align: center;
     background: linear-gradient(180deg, #8C2222 0%, var(--do) 48%, var(--do-sau) 100%);
     border-bottom: 1px solid rgba(200,162,75,.55);
-    box-shadow: 0 8px 26px rgba(94,20,20,.40);
-  }
+    box-shadow: 0 8px 26px rgba(94,20,20,.40); cursor: pointer; }
+  header:active { filter: brightness(1.06); }
   header::before {  /* vệt bóng gương trên đỉnh */
     content:""; position:absolute; inset:0 0 auto 0; height:50%;
     background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0));
@@ -295,7 +295,7 @@
 </head>
 <body>
 <div class="wrap">
-  <header>
+  <header onclick="quayVeMenu()" title="Về đầu trang">
     <div class="logo">Quán Việt</div>
     <div class="tag">Thực đơn · Gọi món tại bàn</div>
     <div class="rule"></div>
@@ -330,7 +330,7 @@
       <button class="ve-menu" onclick="quayVeMenu()">↑ Quay về thực đơn</button>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.3</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.4</div>
   </div>
 </div>
 
