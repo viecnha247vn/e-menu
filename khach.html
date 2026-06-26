@@ -247,6 +247,11 @@
   .done-ic { font-size: 52px; text-align: center; margin: 4px 0 2px; }
   .done-tit { font-family: "Playfair Display", serif; font-size: 27px; font-weight: 800; color: var(--do); text-align: center; }
   .done-sub { text-align: center; color: var(--muc-nhat); font-size: 14.5px; line-height: 1.6; margin: 8px 0 16px; }
+  .hd-box { background: rgba(255,255,255,.6); border: 1px solid rgba(200,162,75,.4); border-radius: 14px; padding: 14px; margin-bottom: 6px; }
+  .hd-q { font-weight: 700; font-size: 14px; color: var(--do); text-align: center; margin-bottom: 10px; }
+  .hd-input { width: 100%; padding: 11px 13px; border: 1px solid rgba(122,26,26,.18); border-radius: 11px; font-size: 15px; font-family: inherit; margin-bottom: 10px; background: #fff; }
+  .hd-input:focus { outline: none; border-color: var(--dong); box-shadow: 0 0 0 3px rgba(200,162,75,.18); }
+  .hd-note { text-align: center; font-size: 12.5px; margin-top: 9px; min-height: 16px; }
 </style>
 </head>
 <body>
@@ -285,7 +290,7 @@
       <div id="daGoi"></div>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 6.9</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.0</div>
   </div>
 </div>
 
@@ -321,6 +326,12 @@
     <div class="done-ic">🎉</div>
     <div class="done-tit">Đã thanh toán</div>
     <p class="done-sub">Cảm ơn quý khách đã dùng bữa.<br>Hẹn gặp lại quý khách! 🙏</p>
+    <div class="hd-box">
+      <div class="hd-q">🧾 Cần hóa đơn điện tử?</div>
+      <input id="hdEmail" class="hd-input" type="email" inputmode="email" autocomplete="email" placeholder="Nhập email để nhận hóa đơn">
+      <button class="pay-act" onclick="guiHoaDon(this)">Gửi hóa đơn vào email</button>
+      <div class="hd-note" id="hdNote"></div>
+    </div>
     <button class="btn-close" onclick="dongDone()">Đóng</button>
   </div>
 </div>
@@ -624,6 +635,21 @@ function moCamOn() {
   capNhatFab();
 }
 function dongDone() { document.getElementById("modalDone").classList.remove("show"); }
+
+async function guiHoaDon(btn) {
+  const email = document.getElementById("hdEmail").value.trim();
+  const note = document.getElementById("hdNote");
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { note.style.color = "#C0392B"; note.textContent = "Email chưa đúng, kiểm tra lại."; return; }
+  rung(20);
+  btn.disabled = true; const cu = btn.textContent; btn.textContent = "Đang gửi…";
+  note.style.color = "#8A7F72"; note.textContent = "";
+  try {
+    const d = await jsonp({ action:"gui_hoadon", ban: BAN, email });
+    if (d.ok) { note.style.color = "#2B7A3E"; note.textContent = "Đã gửi hóa đơn tới " + email + " ✓"; }
+    else { note.style.color = "#C0392B"; note.textContent = d.error || "Gửi chưa được, thử lại."; }
+  } catch(e){ note.style.color = "#C0392B"; note.textContent = "Lỗi mạng, thử lại."; }
+  btn.disabled = false; btn.textContent = cu;
+}
 
 /* Làm mới thông minh: nhanh khi đang chờ bếp, chậm khi rảnh, tự né gọi chồng */
 function dangHoatDong() {
