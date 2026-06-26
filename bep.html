@@ -4,92 +4,100 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bếp — Màn hình đơn (KDS)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
 <style>
+  :root{ --do:#7A1A1A; --do-sau:#5E1414; --dong:#C8A24B; --dong-sang:#E7CE8E; }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  body { font-family: system-ui, sans-serif; background: #1A1714; color: #EDE7DF; padding-bottom: 30px; }
+  body { font-family: "Be Vietnam Pro", system-ui, sans-serif; color: #EDE7DF; padding-bottom: 30px;
+    background: radial-gradient(120% 50% at 50% -5%, #241B17 0%, #1A1512 55%, #140F0D 100%) fixed; }
   .wrap { max-width: 1200px; margin: 0 auto; }
+  button { touch-action: manipulation; font-family: inherit; }
+  button:active { transform: scale(.97); opacity: .92; }
 
-  header { position: sticky; top: 0; z-index: 10; background: #2A2420;
-    padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 2px solid #E8590C; }
-  header h1 { font-size: 18px; }
-  header .right { display: flex; gap: 10px; align-items: center; }
-  .dot-live { width: 9px; height: 9px; border-radius: 50%; background: #2B8A3E; display: inline-block;
-    animation: pulse 1.5s infinite; }
+  header { position: sticky; top: 0; z-index: 20; overflow: hidden;
+    padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    background: linear-gradient(180deg,#8C2222 0%, var(--do) 50%, var(--do-sau) 100%);
+    border-bottom: 1px solid rgba(200,162,75,.55); box-shadow: 0 8px 24px rgba(60,12,12,.5); }
+  header::before { content:""; position:absolute; inset:0 0 auto 0; height:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.18), transparent); pointer-events:none; }
+  header h1 { font-family:"Playfair Display",serif; font-weight:800; font-size:21px; color:#F6E6BC; position:relative; }
+  header h1 span { font-family:"Be Vietnam Pro",sans-serif; }
+  header .right { display: flex; gap: 9px; align-items: center; position:relative; flex-wrap:wrap; justify-content:flex-end; }
+  .dot-live { width: 9px; height: 9px; border-radius: 50%; background: #6CE08A; display: inline-block; animation: pulse 1.5s infinite; box-shadow:0 0 8px rgba(108,224,138,.7); }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .reset { background: transparent; border: 1px solid #5a4a3a; color: #E59866;
-    padding: 7px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; }
+  .reset { background: rgba(0,0,0,.18); border: 1px solid rgba(231,206,142,.45); color: var(--dong-sang);
+    padding: 8px 12px; border-radius: 9px; font-weight: 600; cursor: pointer; font-size: 13px; }
 
   /* Băng yêu cầu phục vụ */
-  .sv-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px 0; }
-  .sv-card { background: #4a3a12; border: 1px solid #f2c037; border-radius: 10px;
-    padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
+  .sv-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 16px 0; }
+  .sv-card { background: linear-gradient(180deg,#5a4616,#42330f); border: 1px solid #C8A24B; border-radius: 12px;
+    padding: 10px 14px; display: flex; align-items: center; gap: 12px; box-shadow:0 4px 14px rgba(0,0,0,.3); }
   .sv-card .txt { font-weight: 800; color: #ffe08a; }
-  .sv-card .ban { background: #f2c037; color: #2A2420; border-radius: 6px; padding: 1px 8px; font-weight: 900; }
-  .sv-card .note { font-size: 12px; color: #d9c9a0; }
-  .sv-card button { background: #2F9E44; color: #fff; border: none; padding: 8px 12px;
-    border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .sv-card .ban { background: var(--dong); color: #2A2012; border-radius: 7px; padding: 1px 9px; font-weight: 900; }
+  .sv-card .note { font-size: 12px; color: #e3d4ab; }
+  .sv-card button { background: linear-gradient(180deg,#37A24D,#2B7A3E); color: #fff; border: none; padding: 8px 13px;
+    border-radius: 9px; font-weight: 700; cursor: pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,.25); }
 
   /* Doanh thu hôm nay */
-  .doanhthu { display: flex; align-items: center; gap: 8px; background: #14331f;
-    border: 1px solid #2f7a4a; color: #8CE99A; padding: 6px 12px; border-radius: 10px; font-size: 13px; }
+  .doanhthu { display: flex; align-items: center; gap: 8px; background: rgba(20,51,31,.6);
+    border: 1px solid #2f7a4a; color: #8CE99A; padding: 7px 13px; border-radius: 10px; font-size: 13px; }
   .doanhthu b { color: #b6f5c8; font-size: 16px; }
 
   /* Dải bàn đang phục vụ */
-  .ban-bar { padding: 12px 16px 0; }
-  .ban-bar h3 { font-size: 13px; color: #9c8d7d; margin-bottom: 8px; font-weight: 700; }
+  .ban-bar { padding: 16px 16px 0; }
+  .ban-bar h3 { font-family:"Playfair Display",serif; font-size: 16px; color: var(--dong-sang); margin-bottom: 9px; font-weight: 700; }
   .ban-list { display: flex; flex-wrap: wrap; gap: 10px; }
-  .ban-card { background: #2E2823; border: 1px solid #5a4a3a; border-radius: 10px;
-    padding: 10px 12px; min-width: 150px; }
-  .ban-card .bn { font-weight: 900; font-size: 16px; color: #FFA94D; }
-  .ban-card .meta { font-size: 12px; color: #9c8d7d; margin: 2px 0 8px; }
+  .ban-card { background: linear-gradient(180deg,#2E2620,#241D18); border: 1px solid rgba(200,162,75,.35); border-radius: 12px;
+    padding: 11px 13px; min-width: 152px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+  .ban-card .bn { font-family:"Playfair Display",serif; font-weight: 800; font-size: 17px; color: var(--dong-sang); }
+  .ban-card .meta { font-size: 12px; color: #9c8d7d; margin: 2px 0 9px; }
   .ban-card .tong { font-weight: 800; font-size: 15px; color: #fff; }
-  .ban-card .pay { width: 100%; margin-top: 8px; background: #2F9E44; color: #fff; border: none;
-    padding: 9px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; }
+  .ban-card .pay { width: 100%; margin-top: 9px; background: linear-gradient(180deg,#37A24D,#2B7A3E); color: #fff; border: none;
+    padding: 10px; border-radius: 9px; font-weight: 700; cursor: pointer; font-size: 13px; box-shadow:inset 0 1px 0 rgba(255,255,255,.25); }
   .ban-empty { color: #6b5d4f; font-size: 13px; }
 
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 16px; }
   @media (max-width: 800px){ .grid { grid-template-columns: 1fr; } }
 
-  .col { background: #221E1A; border-radius: 12px; padding: 10px; min-height: 200px; }
+  .col { background: rgba(34,28,24,.7); border: 1px solid rgba(255,255,255,.04); border-radius: 14px; padding: 11px; min-height: 200px; }
   .col-head { display: flex; justify-content: space-between; align-items: center;
-    font-weight: 800; padding: 9px 12px; border-radius: 8px; margin-bottom: 10px; font-size: 15px; }
-  .col-head .dem { background: rgba(0,0,0,.25); border-radius: 20px; padding: 1px 10px; font-size: 14px; }
-  .h-moi { background: #3a2418; color: #FFA94D; }
-  .h-lam { background: #1b2c3a; color: #74C0FC; }
-  .h-xong { background: #1c3322; color: #8CE99A; }
+    font-weight: 800; padding: 10px 13px; border-radius: 10px; margin-bottom: 11px; font-size: 15px; }
+  .col-head .dem { background: rgba(0,0,0,.28); border-radius: 20px; padding: 1px 10px; font-size: 14px; }
+  .h-moi { background: linear-gradient(180deg,#46291a,#33200f); color: #FFB264; }
+  .h-lam { background: linear-gradient(180deg,#1d3346,#142736); color: #74C0FC; }
+  .h-xong { background: linear-gradient(180deg,#1d3a28,#13301f); color: #8CE99A; }
   .trong { text-align: center; color: #6b5d4f; font-size: 13px; padding: 24px; }
 
-  .ticket { background: #2E2823; border-radius: 10px; padding: 12px; margin-bottom: 10px;
-    border-left: 4px solid #E8590C; }
+  .ticket { background: linear-gradient(180deg,#2E2620,#251E19); border-radius: 11px; padding: 12px; margin-bottom: 10px;
+    border-left: 4px solid var(--dong); box-shadow:0 3px 10px rgba(0,0,0,.25); }
   .ticket.lam { border-left-color: #4DABF7; }
-  .ticket.xong { border-left-color: #51CF66; opacity: .75; }
+  .ticket.xong { border-left-color: #51CF66; opacity: .72; }
   .t-head { display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #463c32; }
-  .t-ban { font-weight: 900; font-size: 17px; }
+  .t-ban { font-family:"Playfair Display",serif; font-weight: 800; font-size: 18px; color:var(--dong-sang); }
   .t-time { font-size: 12px; color: #9c8d7d; }
   .t-mon { display: flex; gap: 8px; font-size: 16px; padding: 4px 0; }
-  .t-mon b { color: #FFA94D; min-width: 30px; }
-  .t-note { font-size: 13px; color: #ffd8a8; background: #3a2c18; padding: 6px 9px;
-    border-radius: 7px; margin-top: 6px; }
-  .act { width: 100%; color: #fff; border: none; padding: 11px; border-radius: 8px;
-    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; }
-  .a-lam { background: #1971C2; }
-  .a-xong { background: #2F9E44; }
-  .a-mo { background: #495057; }
+  .t-mon b { color: #FFB264; min-width: 30px; }
+  .t-note { font-size: 13px; color: #ffd8a8; background: #3a2c18; padding: 6px 9px; border-radius: 7px; margin-top: 6px; }
+  .act { width: 100%; color: #fff; border: none; padding: 11px; border-radius: 9px;
+    font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; box-shadow:inset 0 1px 0 rgba(255,255,255,.18); }
+  .a-lam { background: linear-gradient(180deg,#2284E0,#1971C2); }
+  .a-xong { background: linear-gradient(180deg,#37A24D,#2B7A3E); }
+  .a-mo { background: linear-gradient(180deg,#566069,#414950); }
 
-  .pinbox { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: flex;
-    align-items: center; justify-content: center; z-index: 100; }
-  .pinbox .panel { background: #2A2420; padding: 28px; border-radius: 16px; width: 300px; text-align: center; }
-  .pinbox h2 { font-size: 17px; margin-bottom: 6px; }
+  .pinbox { position: fixed; inset: 0; background: rgba(10,6,5,.85); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .pinbox .panel { background: linear-gradient(180deg,#2E2620,#221B17); padding: 30px; border-radius: 18px; width: 310px; text-align: center;
+    border:1px solid rgba(200,162,75,.4); box-shadow:0 20px 50px rgba(0,0,0,.5); }
+  .pinbox h2 { font-family:"Playfair Display",serif; font-size: 20px; margin-bottom: 6px; color:var(--dong-sang); }
   .pinbox p { font-size: 13px; color: #9c8d7d; margin-bottom: 16px; }
   .pinbox input { width: 100%; padding: 12px; font-size: 20px; text-align: center; letter-spacing: 6px;
-    border-radius: 10px; border: 1px solid #463c32; background: #1A1714; color: #fff; margin-bottom: 12px; }
-  .pinbox button { width: 100%; padding: 12px; background: #E8590C; color: #fff; border: none;
-    border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; }
+    border-radius: 10px; border: 1px solid #463c32; background: #15110E; color: #fff; margin-bottom: 12px; }
+  .pinbox button { width: 100%; padding: 13px; color: #fff; border: none; border-radius: 11px; font-weight: 700; font-size: 15px; cursor: pointer;
+    background: linear-gradient(180deg,#9A2B2B,var(--do)); box-shadow:inset 0 1px 0 rgba(255,255,255,.25); }
   .pinbox .err { color: #ff8787; font-size: 13px; min-height: 18px; }
-  button { touch-action: manipulation; }
-  button:active { transform: scale(.97); opacity: .9; }
 </style>
 </head>
 <body>
