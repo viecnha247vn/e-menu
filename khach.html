@@ -202,11 +202,20 @@
   .ve-menu:active { background: linear-gradient(180deg,#F4ECDD,#EFE6D4); }
 
   /* Ô đặt tên người gọi */
-  .ten-chip { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: -6px 0 16px;
-    padding: 9px 14px; border-radius: 11px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--do);
-    background: rgba(255,255,255,.62); border: 1px solid rgba(200,162,75,.42); }
-  .ten-chip:active { background: rgba(255,255,255,.8); }
-  .ten-chip .ten-edit { color: var(--dong); font-size: 12px; }
+  .ten-chip { width: 100%; display: flex; align-items: center; gap: 11px; margin: -4px 0 16px; padding: 10px 13px;
+    border-radius: 13px; cursor: pointer; text-align: left; font-family: inherit;
+    background: rgba(255,255,255,.62); border: 1px solid rgba(200,162,75,.42);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.7); }
+  .ten-chip:active { background: rgba(255,255,255,.82); }
+  .tc-ava { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: #fff; flex: none;
+    background: linear-gradient(180deg, var(--do-sang), var(--do)); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
+  .tc-ava.empty { background: #E7DECB; color: #8A7F72; box-shadow: none; }
+  .tc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .tc-lab { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muc-nhat); font-weight: 700; }
+  .tc-val { font-size: 14.5px; font-weight: 700; color: var(--do); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tc-val.empty { color: var(--muc-nhat); font-weight: 500; font-size: 12.5px; }
+  .tc-edit { flex: none; color: var(--dong); font-size: 15px; }
 
   /* Chia đều trong modal thanh toán */
   .pay-split { margin: 4px 0 14px; }
@@ -217,6 +226,11 @@
   .ps-btn.on { color: #fff; background: linear-gradient(180deg,var(--do-sang),var(--do)); border-color: var(--do);
     box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
   .ps-each { text-align: center; font-size: 14px; font-weight: 700; color: var(--do); margin-top: 11px; }
+  .ps-custom { display: flex; align-items: center; gap: 10px; margin-top: 11px; font-size: 12.5px; color: var(--muc-nhat); font-weight: 600; }
+  .ps-custom span { flex: none; }
+  .ps-input { flex: 1; min-width: 0; padding: 9px 12px; border: 1px solid rgba(122,26,26,.18); border-radius: 10px;
+    font-size: 15px; font-family: inherit; background: #fff; text-align: center; font-weight: 700; color: var(--do); }
+  .ps-input:focus { outline: none; border-color: var(--dong); box-shadow: 0 0 0 3px rgba(200,162,75,.18); }
 
   /* Chia theo người trong phiếu */
   .r-split-tit { font-weight: 800; font-size: 13px; color: var(--do); text-align: center; letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; }
@@ -342,10 +356,14 @@
       <button onclick="moPayBan()">Thanh toán</button>
     </div>
 
-    <div class="ten-chip" id="tenChip" onclick="moTenModal()">
-      <span id="tenLabel">👤 Thêm tên để chia hoá đơn</span>
-      <span class="ten-edit">✎ Sửa</span>
-    </div>
+    <button class="ten-chip" id="tenChip" onclick="moTenModal()">
+      <span class="tc-ava" id="tenAva">👤</span>
+      <span class="tc-main">
+        <span class="tc-lab">Tên của bạn</span>
+        <span class="tc-val" id="tenLabel">Chạm để nhập — chia hoá đơn theo người</span>
+      </span>
+      <span class="tc-edit">✎</span>
+    </button>
 
     <div class="card">
       <h3 class="sec">Thực đơn</h3>
@@ -360,7 +378,7 @@
       <button class="ve-menu" onclick="quayVeMenu()">↑ Quay về thực đơn</button>
     </div>
 
-    <div class="footer-note">Quán Việt · phiên bản 7.5</div>
+    <div class="footer-note">Quán Việt · phiên bản 7.6</div>
   </div>
 </div>
 
@@ -387,6 +405,10 @@
     <div class="pay-split" id="paySplit" style="display:none">
       <div class="ps-lab">Chia đều cho:</div>
       <div class="ps-btns" id="psBtns"></div>
+      <div class="ps-custom">
+        <span>Hoặc nhập số người:</span>
+        <input id="psNhap" class="ps-input" type="number" min="2" inputmode="numeric" placeholder="VD: 8" oninput="chonChiaNhap(this.value)">
+      </div>
       <div class="ps-each" id="psEach"></div>
     </div>
     <div id="payQR"></div>
@@ -570,8 +592,16 @@ function goiNhanVien() {
 let TEN_TOI = "";
 try { TEN_TOI = localStorage.getItem("emenu_ten_" + BAN) || ""; } catch(e){}
 function veTenChip() {
-  const el = document.getElementById("tenLabel");
-  if (el) el.textContent = TEN_TOI ? ("👤 " + TEN_TOI) : "👤 Thêm tên để chia hoá đơn";
+  const ava = document.getElementById("tenAva");
+  const val = document.getElementById("tenLabel");
+  if (!val || !ava) return;
+  if (TEN_TOI) {
+    ava.textContent = TEN_TOI.charAt(0).toUpperCase(); ava.classList.remove("empty");
+    val.textContent = TEN_TOI; val.classList.remove("empty");
+  } else {
+    ava.textContent = "👤"; ava.classList.add("empty");
+    val.textContent = "Chạm để nhập — chia hoá đơn theo người"; val.classList.add("empty");
+  }
 }
 function moTenModal() { document.getElementById("tenInput").value = TEN_TOI; document.getElementById("modalTen").classList.add("show"); }
 function dongTen() { document.getElementById("modalTen").classList.remove("show"); }
@@ -603,13 +633,24 @@ function moPay(amount, info, allowSplit, title) {
     ps.style.display = "block";
     document.getElementById("psBtns").innerHTML = [1,2,3,4,5].map(n =>
       `<button class="ps-btn ${n===1?'on':''}" data-n="${n}" onclick="chonChia(${n})">${n===1?'Cả bàn':n}</button>`).join("");
+    const inp = document.getElementById("psNhap"); if (inp) inp.value = "";
   } else ps.style.display = "none";
   veQR();
   document.getElementById("modalPay").classList.add("show");
 }
 function chonChia(n) {
   paySoNguoi = n; rung(10);
-  document.querySelectorAll("#psBtns .ps-btn").forEach(b => b.classList.toggle("on", Number(b.dataset.n) === n));
+  const inp = document.getElementById("psNhap"); if (inp) inp.value = "";
+  capNhatChia();
+}
+function chonChiaNhap(v) {
+  const n = parseInt(v, 10);
+  if (!v) return;                       // để trống thì giữ nguyên
+  paySoNguoi = n >= 1 ? n : 1;
+  capNhatChia();
+}
+function capNhatChia() {
+  document.querySelectorAll("#psBtns .ps-btn").forEach(b => b.classList.toggle("on", Number(b.dataset.n) === paySoNguoi));
   veQR();
 }
 function veQR() {
