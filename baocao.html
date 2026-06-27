@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Báo cáo — Quán Việt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --do:#7A1A1A; --do-sau:#5E1414; --do-sang:#9A2B2B;
+    --dong:#C8A24B; --dong-sang:#E7CE8E; --kem:#F4EFE4; --muc:#2A2320; --muc-nhat:#8A7F72;
+    --xanh:#1d6b34; --xanh-bg:#E9F7EC;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: "Be Vietnam Pro", system-ui, sans-serif; color: var(--muc); padding-bottom: 50px;
+    background: radial-gradient(120% 50% at 50% -10%, #FBF7EE 0%, var(--kem) 45%, #ECE4D4 100%) fixed; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  button { touch-action: manipulation; font-family: inherit; }
+  button:active { transform: scale(.98); }
+
+  header { position: relative; overflow: hidden; padding: 17px 20px 16px; text-align: center;
+    background: linear-gradient(180deg,#8C2222 0%, var(--do) 48%, var(--do-sau) 100%);
+    border-bottom: 1px solid rgba(200,162,75,.55); box-shadow: 0 8px 26px rgba(94,20,20,.40); }
+  header::before { content:""; position:absolute; inset:0 0 auto 0; height:50%;
+    background: linear-gradient(180deg, rgba(255,255,255,.22), transparent); pointer-events:none; }
+  header .logo { font-family:"Playfair Display",serif; font-weight:800; font-size:26px; color:#F6E6BC; }
+  header .tag { margin-top:3px; font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:4px; color:rgba(231,206,142,.85); }
+
+  .card { border-radius:18px; padding:18px; margin-bottom:16px;
+    background:rgba(255,255,255,.74); -webkit-backdrop-filter:blur(14px) saturate(150%); backdrop-filter:blur(14px) saturate(150%);
+    border:1px solid rgba(255,255,255,.7); box-shadow:0 10px 34px rgba(80,45,20,.10), inset 0 1px 0 rgba(255,255,255,.85); }
+  h3 { font-family:"Playfair Display",serif; font-weight:700; font-size:20px; color:var(--do); margin-bottom:14px; }
+  label { display:block; font-size:12px; color:var(--muc-nhat); font-weight:600; margin:11px 0 4px; }
+  input { width:100%; padding:11px 13px; border:1px solid rgba(122,26,26,.18); border-radius:10px;
+    font-size:15px; font-family:inherit; background:#fff; color:var(--muc); }
+  input:focus { outline:none; border-color:var(--dong); box-shadow:0 0 0 3px rgba(200,162,75,.18); }
+  .row { display:flex; gap:12px; flex-wrap:wrap; }
+  .row > div { flex:1; min-width:110px; }
+
+  .btn { color:#fff; border:none; padding:12px 20px; border-radius:11px; font-size:15px; font-weight:700; cursor:pointer;
+    background:linear-gradient(180deg,var(--do-sang),var(--do));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3), 0 4px 12px rgba(122,26,26,.28); }
+
+  /* Tabs kỳ báo cáo */
+  .tabs { display:flex; gap:6px; background:rgba(122,26,26,.06); border-radius:12px; padding:4px; margin-bottom:16px; }
+  .tabs button { flex:1; padding:9px 4px; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer;
+    color:var(--do); background:transparent; border:none; }
+  .tabs button.on { background:linear-gradient(180deg,#fff,#F4ECDD); box-shadow:0 2px 6px rgba(122,26,26,.12); }
+
+  /* Thẻ số liệu */
+  .kpis { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+  .kpi { border-radius:16px; padding:15px; background:rgba(255,255,255,.8); border:1px solid rgba(200,162,75,.35);
+    box-shadow:0 6px 18px rgba(80,45,20,.08); }
+  .kpi .lab { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--muc-nhat); font-weight:700; }
+  .kpi .val { font-family:"Playfair Display",serif; font-weight:800; font-size:23px; margin-top:5px; color:var(--do); }
+  .kpi.dt .val{ color:var(--xanh); }
+  .kpi.nhap .val{ color:#B5651D; }
+  .kpi.loi .val{ color:var(--do); }
+  .kpi.hd .val{ color:var(--muc); }
+  .kpi.loi.am .val{ color:#C0392B; }
+
+  /* Biểu đồ */
+  .chart { display:flex; align-items:flex-end; gap:8px; height:150px; padding-top:6px; }
+  .col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; }
+  .bars { display:flex; align-items:flex-end; gap:3px; height:120px; }
+  .bar { width:9px; border-radius:3px 3px 0 0; }
+  .bar.dt { background:linear-gradient(180deg,#3DBb6a,var(--xanh)); }
+  .bar.nhap { background:linear-gradient(180deg,#E0A45C,#B5651D); }
+  .col .day { font-size:9.5px; color:var(--muc-nhat); white-space:nowrap; }
+  .legend { display:flex; gap:16px; justify-content:center; margin-top:12px; font-size:12px; color:var(--muc-nhat); }
+  .legend i { display:inline-block; width:11px; height:11px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+  .legend .l-dt i{ background:var(--xanh); } .legend .l-nhap i{ background:#B5651D; }
+
+  /* Top món */
+  .topitem { display:flex; align-items:center; gap:11px; padding:10px 0; border-bottom:1px solid rgba(122,26,26,.08); }
+  .topitem:last-child { border-bottom:none; }
+  .topitem .rank { width:24px; height:24px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; color:#fff; background:linear-gradient(180deg,var(--dong-sang),var(--dong)); }
+  .topitem .ten { flex:1; font-weight:600; }
+  .topitem .sl { font-size:12px; color:var(--muc-nhat); }
+  .topitem .tien { font-weight:700; color:var(--do); white-space:nowrap; }
+
+  /* Nhập hàng list */
+  .nh-row { display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid rgba(122,26,26,.08); }
+  .nh-row:last-child { border-bottom:none; }
+  .nh-row .info { flex:1; min-width:0; }
+  .nh-row .ten { font-weight:600; }
+  .nh-row .meta { font-size:12px; color:var(--muc-nhat); }
+  .nh-row .tien { font-weight:700; color:#B5651D; white-space:nowrap; }
+  .nh-row .xoa { flex:none; width:30px; height:30px; border-radius:8px; border:1px solid #f0c5c5; background:#fff; color:#C0392B; font-size:15px; cursor:pointer; }
+  .tt-auto { font-weight:700; color:#B5651D; font-size:14px; margin-top:8px; }
+  .muted { font-size:13px; color:var(--muc-nhat); padding:8px 0; }
+
+  /* Login */
+  .pinbox { position:fixed; inset:0; background:rgba(40,15,15,.6); -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+  .pinbox .panel { background:linear-gradient(180deg,#FFFDF8,#F5EEE0); padding:28px; border-radius:18px; width:330px; text-align:center;
+    border:1px solid rgba(200,162,75,.4); box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .pinbox h3 { margin-bottom:6px; }
+  .pinbox input { text-align:center; letter-spacing:2px; margin:14px 0; }
+  .pinbox .err { color:#C0392B; font-size:13px; min-height:18px; }
+  .toast { position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:linear-gradient(180deg,#2F8F44,#247135);
+    color:#fff; padding:12px 22px; border-radius:30px; font-weight:700; font-size:14px; opacity:0; transition:.3s; z-index:120; box-shadow:0 8px 22px rgba(0,0,0,.3); }
+  .toast.show { opacity:1; }
+  .toast.err { background:linear-gradient(180deg,#C0392B,#962d22); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Quán Việt</div>
+  <div class="tag">Báo cáo nhập & bán</div>
+</header>
+
+<div class="wrap" id="app" style="display:none">
+
+  <div class="tabs" id="tabs">
+    <button data-k="today" class="on" onclick="chonKy('today')">Hôm nay</button>
+    <button data-k="7" onclick="chonKy('7')">7 ngày</button>
+    <button data-k="30" onclick="chonKy('30')">30 ngày</button>
+    <button data-k="all" onclick="chonKy('all')">Tất cả</button>
+  </div>
+
+  <div class="kpis" id="kpis">
+    <div class="kpi dt"><div class="lab">Doanh thu (bán ra)</div><div class="val" id="kDt">—</div></div>
+    <div class="kpi nhap"><div class="lab">Chi phí nhập hàng</div><div class="val" id="kNhap">—</div></div>
+    <div class="kpi loi" id="kLoiBox"><div class="lab">Lợi nhuận gộp</div><div class="val" id="kLoi">—</div></div>
+    <div class="kpi hd"><div class="lab">Số hóa đơn</div><div class="val" id="kHd">—</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Doanh thu & nhập theo ngày</h3>
+    <div class="chart" id="chart"><div class="muted">Đang tải…</div></div>
+    <div class="legend"><span class="l-dt"><i></i>Doanh thu</span><span class="l-nhap"><i></i>Nhập hàng</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Món bán chạy</h3>
+    <div id="topMon"><div class="muted">Đang tải…</div></div>
+  </div>
+
+  <div class="card">
+    <h3>＋ Ghi nhập hàng</h3>
+    <label>Tên hàng *</label>
+    <input id="nTen" placeholder="VD: Thịt bò, Gạo, Rau…">
+    <div class="row">
+      <div><label>Số lượng</label><input id="nSl" type="number" inputmode="decimal" value="1" oninput="tinhTT()"></div>
+      <div><label>Đơn vị</label><input id="nDv" placeholder="kg, thùng…"></div>
+      <div><label>Đơn giá (đ)</label><input id="nDg" type="number" inputmode="numeric" placeholder="0" oninput="tinhTT()"></div>
+    </div>
+    <div class="tt-auto" id="nTT">Thành tiền: 0đ</div>
+    <div class="row">
+      <div><label>Nhà cung cấp</label><input id="nNcc" placeholder="(tùy chọn)"></div>
+      <div><label>Ghi chú</label><input id="nGc" placeholder="(tùy chọn)"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:16px" onclick="luuNhap(this)">Lưu nhập hàng</button>
+  </div>
+
+  <div class="card">
+    <h3>Lịch sử nhập hàng</h3>
+    <div id="nhapList"><div class="muted">Đang tải…</div></div>
+  </div>
+
+</div>
+
+<div class="pinbox" id="pinbox">
+  <div class="panel">
+    <h3>🔒 Báo cáo quản trị</h3>
+    <p style="font-size:13px;color:#8A7F72">Nhập mật khẩu quản trị để xem báo cáo</p>
+    <input id="pinInput" type="password" placeholder="Mật khẩu">
+    <button class="btn" style="width:100%" onclick="dangNhap()">Vào báo cáo</button>
+    <div class="err" id="pinErr"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+let PASS = "";
+let ky = "today";
+
+async function jsonp(params){
+  try{ const r = await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(params)}); return await r.json(); }
+  catch(e){ return { ok:false, error:"Lỗi kết nối: " + e }; }
+}
+const fmt = n => (Number(n)||0).toLocaleString("vi-VN") + "đ";
+const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg, err){ const t=document.getElementById("toast"); t.textContent=msg; t.className="toast show"+(err?" err":""); setTimeout(()=>t.className="toast",2200); }
+
+document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") dangNhap(); });
+try { const p = localStorage.getItem("emenu_admin"); if(p){ document.getElementById("pinInput").value=p; } } catch(e){}
+
+async function dangNhap(){
+  const pass = document.getElementById("pinInput").value.trim();
+  if(!pass){ document.getElementById("pinErr").textContent="Nhập mật khẩu"; return; }
+  document.getElementById("pinErr").textContent="Đang kiểm tra…";
+  const d = await jsonp({ action:"nhap_list", adminPass:pass, limit:1 });
+  if(d.ok){
+    PASS = pass; try{ localStorage.setItem("emenu_admin", pass); }catch(e){}
+    document.getElementById("pinbox").style.display="none";
+    document.getElementById("app").style.display="block";
+    taiTatCa();
+  } else {
+    document.getElementById("pinErr").textContent = d.error || "Sai mật khẩu";
+  }
+}
+
+function khoangKy(){
+  const den = Date.now();
+  const d = new Date(); d.setHours(0,0,0,0);
+  if(ky==="today") return { tu:d.getTime(), den };
+  if(ky==="7"){ d.setDate(d.getDate()-6); return { tu:d.getTime(), den }; }
+  if(ky==="30"){ d.setDate(d.getDate()-29); return { tu:d.getTime(), den }; }
+  return { tu:0, den };
+}
+function chonKy(k){
+  ky=k;
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on", b.dataset.k===k));
+  taiBaoCao();
+}
+
+function taiTatCa(){ taiBaoCao(); taiNhap(); }
+
+async function taiBaoCao(){
+  const { tu, den } = khoangKy();
+  const d = await jsonp({ action:"bao_cao", adminPass:PASS, tu, den });
+  if(!d.ok){ toast(d.error||"Lỗi tải báo cáo", true); return; }
+  document.getElementById("kDt").textContent = fmt(d.doanhThu);
+  document.getElementById("kNhap").textContent = fmt(d.chiNhap);
+  document.getElementById("kLoi").textContent = fmt(d.loiNhuan);
+  document.getElementById("kHd").textContent = d.soHD + " hóa đơn";
+  document.getElementById("kLoiBox").classList.toggle("am", d.loiNhuan < 0);
+  veChart(d.theoNgay || {}, d.nhapTheoNgay || {});
+  veTop(d.topMon || []);
+}
+
+function veChart(dt, nhap){
+  const ngays = [...new Set([...Object.keys(dt), ...Object.keys(nhap)])].sort();
+  const show = ngays.slice(-14);
+  const box = document.getElementById("chart");
+  if(!show.length){ box.innerHTML = `<div class="muted">Chưa có dữ liệu trong kỳ này.</div>`; return; }
+  let max = 1;
+  show.forEach(n => { max = Math.max(max, dt[n]||0, nhap[n]||0); });
+  box.innerHTML = show.map(n => {
+    const hDt = Math.round(((dt[n]||0)/max)*120);
+    const hNh = Math.round(((nhap[n]||0)/max)*120);
+    const dd = n.slice(8,10) + "/" + n.slice(5,7);
+    return `<div class="col">
+      <div class="bars">
+        <div class="bar dt" style="height:${hDt}px" title="DT ${fmt(dt[n]||0)}"></div>
+        <div class="bar nhap" style="height:${hNh}px" title="Nhập ${fmt(nhap[n]||0)}"></div>
+      </div>
+      <div class="day">${dd}</div>
+    </div>`;
+  }).join("");
+}
+
+function veTop(top){
+  const box = document.getElementById("topMon");
+  if(!top.length){ box.innerHTML = `<div class="muted">Chưa có dữ liệu bán trong kỳ này.</div>`; return; }
+  box.innerHTML = top.map((m,i) =>
+    `<div class="topitem"><div class="rank">${i+1}</div>
+      <div class="ten">${esc(m.ten)}<div class="sl">Đã bán ${m.sl} phần</div></div>
+      <div class="tien">${fmt(m.tien)}</div></div>`
+  ).join("");
+}
+
+function tinhTT(){
+  const sl = Number(document.getElementById("nSl").value)||0;
+  const dg = Number(document.getElementById("nDg").value)||0;
+  document.getElementById("nTT").textContent = "Thành tiền: " + fmt(sl*dg);
+}
+
+async function luuNhap(btn){
+  const ten = document.getElementById("nTen").value.trim();
+  if(!ten){ toast("Nhập tên hàng", true); return; }
+  const payload = {
+    action:"nhap_them", adminPass:PASS, ten,
+    soLuong: Number(document.getElementById("nSl").value)||0,
+    donVi: document.getElementById("nDv").value.trim(),
+    donGia: Number(document.getElementById("nDg").value)||0,
+    ncc: document.getElementById("nNcc").value.trim(),
+    ghiChu: document.getElementById("nGc").value.trim(),
+  };
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang lưu…";
+  const d = await jsonp(payload);
+  btn.disabled=false; btn.textContent=cu;
+  if(d.ok){
+    toast("Đã lưu nhập hàng ✓");
+    ["nTen","nDv","nDg","nNcc","nGc"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("nSl").value="1"; tinhTT();
+    taiNhap(); taiBaoCao();
+  } else toast(d.error||"Lưu chưa được", true);
+}
+
+async function taiNhap(){
+  const d = await jsonp({ action:"nhap_list", adminPass:PASS, limit:100 });
+  const box = document.getElementById("nhapList");
+  if(!d.ok){ box.innerHTML=`<div class="muted">${esc(d.error||"Lỗi tải")}</div>`; return; }
+  if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có lần nhập hàng nào.</div>`; return; }
+  box.innerHTML = d.items.map(it => {
+    const ng = new Date(it.luc).toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const sl = it.soLuong + (it.donVi ? " " + it.donVi : "");
+    const extra = [sl, it.ncc, ng].filter(Boolean).join(" · ");
+    return `<div class="nh-row">
+      <div class="info"><div class="ten">${esc(it.ten)}</div><div class="meta">${esc(extra)}</div></div>
+      <div class="tien">${fmt(it.thanhTien)}</div>
+      <button class="xoa" onclick="xoaNhap(${it.hang}, '${esc(it.ten).replace(/'/g,"")}')">✕</button>
+    </div>`;
+  }).join("");
+}
+
+async function xoaNhap(hang, ten){
+  if(!confirm("Xóa lần nhập \"" + ten + "\"?")) return;
+  const d = await jsonp({ action:"nhap_xoa", adminPass:PASS, hang });
+  if(d.ok){ toast("Đã xóa ✓"); taiNhap(); taiBaoCao(); }
+  else toast(d.error||"Xóa chưa được", true);
+}
+</script>
+</body>
+</html>
