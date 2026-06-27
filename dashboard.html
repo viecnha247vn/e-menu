@@ -101,6 +101,19 @@
   .nx-toggle { display:flex; gap:6px; background:rgba(122,26,26,.06); border-radius:12px; padding:4px; margin-bottom:16px; }
   .nx-toggle button { flex:1; padding:11px 4px; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; color:var(--do); background:transparent; border:none; font-family:inherit; }
   .nx-toggle button.on { background:linear-gradient(180deg,#fff,#F4ECDD); box-shadow:0 2px 6px rgba(122,26,26,.12); }
+  /* Tồn kho */
+  .khotabs { display:flex; gap:6px; background:rgba(29,107,52,.08); border-radius:12px; padding:4px; margin-bottom:16px; }
+  .khotabs button { flex:1; padding:9px 4px; border-radius:9px; font-size:13px; font-weight:700; cursor:pointer; color:var(--xanh); background:transparent; border:none; }
+  .khotabs button.on { background:linear-gradient(180deg,#fff,#E9F4EC); box-shadow:0 2px 6px rgba(29,107,52,.14); }
+  .kho-row { display:flex; align-items:center; gap:11px; padding:12px 0; border-bottom:1px solid rgba(122,26,26,.08); }
+  .kho-row:last-child { border-bottom:none; }
+  .kho-row .info { flex:1; min-width:0; } .kho-row .ten { font-weight:700; } .kho-row .meta { font-size:12px; color:var(--muc-nhat); }
+  .kho-row .meta b { color:var(--do); }
+  .kho-row .warn { font-size:10px; font-weight:800; color:#fff; background:#C0392B; padding:1px 7px; border-radius:10px; }
+  .kho-row .ton { flex:none; text-align:center; min-width:54px; }
+  .kho-row .ton span { display:block; font-size:10px; color:var(--muc-nhat); } .kho-row .ton b { font-family:"Playfair Display",serif; font-size:20px; color:var(--xanh); line-height:1.1; }
+  .kho-row .ton.do b { color:#C0392B; }
+  .kho-row .xoa { flex:none; width:30px; height:30px; border-radius:8px; border:1px solid #f0c5c5; background:#fff; color:#C0392B; font-size:14px; cursor:pointer; }
   /* Nhóm theo ngày (mở/thu gọn) */
   .day-grp { border:1px solid rgba(200,162,75,.3); border-radius:12px; margin-bottom:10px; overflow:hidden; background:rgba(255,255,255,.5); }
   .day-head { width:100%; display:flex; align-items:center; gap:10px; padding:11px 13px; background:linear-gradient(180deg,#fff,#F6EFE0); border:none; cursor:pointer; font-family:inherit; }
@@ -234,8 +247,9 @@
   <!-- ============ NHẬP – XUẤT ============ -->
   <section class="sec wrap" id="sec-nx" hidden>
     <div class="nx-toggle">
-      <button id="tgNhap" class="on" onclick="chonNX('nhap')">📦 Nhập hàng</button>
-      <button id="tgChi" onclick="chonNX('chi')">💸 Chi phí khác</button>
+      <button id="tgNhap" class="on" onclick="chonNX('nhap')">📦 Nhập</button>
+      <button id="tgChi" onclick="chonNX('chi')">💸 Chi phí</button>
+      <button id="tgKho" onclick="chonNX('kho')">📊 Tồn kho</button>
     </div>
     <div id="nx-nhap">
     <div class="card">
@@ -285,6 +299,32 @@
       <div id="chiList"><div class="muted">Đang tải…</div></div>
     </div>
     </div><!-- /nx-chi -->
+    <div id="nx-kho" hidden>
+      <div class="khotabs">
+        <button data-k="today" class="on" onclick="khoKy('today')">Hôm nay</button>
+        <button data-k="7" onclick="khoKy('7')">Tuần</button>
+        <button data-k="30" onclick="khoKy('30')">Tháng</button>
+      </div>
+      <div class="card">
+        <h3>📊 Tồn kho hàng bán nguyên</h3>
+        <p class="muted" style="margin-top:-6px">Bia, nước ngọt, thuốc lá… Tự tính: Tồn = Tồn đầu + Nhập − Đã bán. Số "Xuất kỳ này" = đã bán trong kỳ chọn ở trên.</p>
+        <div id="khoList"><div class="muted">Đang tải…</div></div>
+      </div>
+      <div class="card">
+        <h3>＋ Thêm hàng theo dõi</h3>
+        <label>Tên hàng * (đặt trùng tên trên Thực đơn & khi ghi nhập)</label>
+        <input id="kTen" placeholder="VD: Bia Tiger">
+        <div class="row">
+          <div><label>Đơn vị bán</label><input id="kDv" placeholder="lon, chai, gói…"></div>
+          <div><label>Quy cách (1 đv nhập = ? đv bán)</label><input id="kQc" type="number" inputmode="numeric" value="1"></div>
+        </div>
+        <div class="row">
+          <div><label>Tồn hiện có (đếm tay)</label><input id="kTon" type="number" inputmode="numeric" value="0"></div>
+          <div><label>Ngưỡng cảnh báo</label><input id="kNg" type="number" inputmode="numeric" placeholder="VD: 12"></div>
+        </div>
+        <button class="btn" style="width:100%;margin-top:16px" onclick="themKho(this)">Thêm vào kho</button>
+      </div>
+    </div><!-- /nx-kho -->
   </section>
 
   <!-- ============ THỰC ĐƠN ============ -->
@@ -465,12 +505,50 @@ function taiNhapXuat(){
   taiNhap(); taiChiPhi();
 }
 function chonNX(w){
-  document.getElementById("nx-nhap").hidden = (w!=="nhap");
-  document.getElementById("nx-chi").hidden = (w!=="chi");
+  ["nhap","chi","kho"].forEach(x => document.getElementById("nx-"+x).hidden = (x!==w));
   document.getElementById("tgNhap").classList.toggle("on", w==="nhap");
   document.getElementById("tgChi").classList.toggle("on", w==="chi");
+  document.getElementById("tgKho").classList.toggle("on", w==="kho");
   window.scrollTo({ top:0 });
+  if(w==="kho") taiKho();
 }
+
+/* ===== Tồn kho ===== */
+let khoKyVal = "today";
+function khoKy(k){ khoKyVal=k; document.querySelectorAll(".khotabs button").forEach(b=>b.classList.toggle("on",b.dataset.k===k)); taiKho(); }
+function khoKhoang(){ const den=Date.now();
+  if(khoKyVal==="today") return {tu:vnNgay(0),den}; if(khoKyVal==="7") return {tu:vnNgay(6),den}; return {tu:vnNgay(29),den}; }
+async function taiKho(){
+  const {tu,den}=khoKhoang();
+  const d=await jsonp({ action:"kho_list", adminPass:PASS, tu, den });
+  const box=document.getElementById("khoList");
+  if(!d.ok){ box.innerHTML=`<div class="muted">${esc(d.error||"Lỗi tải")}</div>`; return; }
+  if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có hàng theo dõi. Thêm ở khung dưới.</div>`; return; }
+  box.innerHTML=d.items.map(it=>{ const dv=esc(it.donViBan||"");
+    return `<div class="kho-row">
+      <div class="info"><div class="ten">${esc(it.ten)}${it.canhBao?' <span class="warn">Sắp hết</span>':''}</div>
+        <div class="meta">Nhập ${it.nhap} · Bán ${it.ban} · Xuất kỳ này: <b>${it.banKy} ${dv}</b></div></div>
+      <div class="ton ${it.canhBao?'do':''}"><span>Tồn</span><b>${it.ton}</b><span>${dv}</span></div>
+      <button class="xoa" onclick="xoaKho(${it.hang},'${esc(it.ten).replace(/'/g,"")}')">✕</button>
+    </div>`;
+  }).join("");
+}
+async function themKho(btn){
+  const ten=document.getElementById("kTen").value.trim(); if(!ten){ toast("Nhập tên hàng",true); return; }
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang lưu…";
+  const d=await jsonp({ action:"kho_them", adminPass:PASS, ten,
+    donViBan:document.getElementById("kDv").value.trim(),
+    quyCach:Number(document.getElementById("kQc").value)||1,
+    tonDau:Number(document.getElementById("kTon").value)||0,
+    nguong:Number(document.getElementById("kNg").value)||0 });
+  btn.disabled=false; btn.textContent=cu;
+  if(d.ok){ toast("Đã thêm vào kho ✓");
+    ["kTen","kDv","kNg"].forEach(id=>document.getElementById(id).value="");
+    document.getElementById("kQc").value="1"; document.getElementById("kTon").value="0"; taiKho(); }
+  else toast(d.error||"Thêm chưa được", true);
+}
+async function xoaKho(hang, ten){ if(!confirm('Bỏ theo dõi "'+ten+'"?')) return;
+  const d=await jsonp({ action:"kho_xoa", adminPass:PASS, hang }); if(d.ok){ toast("Đã xóa ✓"); taiKho(); } else toast(d.error||"Xóa chưa được",true); }
 
 /* ===== Quét hóa đơn bằng AI ===== */
 let quetItems = [];
