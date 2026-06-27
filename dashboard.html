@@ -97,6 +97,15 @@
   .quet-row input { padding:8px 9px; font-size:13px; }
   .q-ten { flex:1; min-width:0; } .q-sl { width:48px; text-align:center; } .q-dv { width:56px; } .q-dg { width:80px; text-align:right; }
   .quet-row .xoa { flex:none; width:30px; height:30px; border-radius:8px; border:1px solid #f0c5c5; background:#fff; color:#C0392B; font-size:14px; cursor:pointer; }
+  /* Nhóm theo ngày (mở/thu gọn) */
+  .day-grp { border:1px solid rgba(200,162,75,.3); border-radius:12px; margin-bottom:10px; overflow:hidden; background:rgba(255,255,255,.5); }
+  .day-head { width:100%; display:flex; align-items:center; gap:10px; padding:11px 13px; background:linear-gradient(180deg,#fff,#F6EFE0); border:none; cursor:pointer; font-family:inherit; }
+  .dh-date { font-weight:800; color:var(--do); font-size:13.5px; }
+  .dh-sum { flex:1; text-align:right; font-size:12.5px; color:var(--muc-nhat); } .dh-sum b { color:#B5651D; }
+  .dh-arrow { flex:none; color:var(--dong); transition:transform .2s; font-size:11px; }
+  .day-grp.open .dh-arrow { transform:rotate(180deg); }
+  .day-body { display:none; padding:0 13px; }
+  .day-grp.open .day-body { display:block; }
 
   /* Thực đơn */
   .grp-head { font-family:"Playfair Display",serif; font-weight:700; color:var(--do); font-size:17px; margin:18px 0 4px; padding-bottom:6px; border-bottom:1px solid rgba(200,162,75,.4); }
@@ -556,14 +565,28 @@ async function luuNhap(btn){
     document.getElementById("nSl").value="1"; tinhTT(); taiNhap(); taiBaoCao(); }
   else toast(d.error||"Lưu chưa được", true);
 }
+function ngayVN(luc){ return new Date(luc).toLocaleDateString("vi-VN",{timeZone:"Asia/Ho_Chi_Minh",day:"2-digit",month:"2-digit",year:"numeric"}); }
+function veNhomNgay(items, rowFn, valFn){
+  const groups=[], map={};
+  items.forEach(it=>{ const k=ngayVN(it.luc); if(!map[k]){ map[k]={ngay:k,items:[],tong:0}; groups.push(map[k]); } map[k].items.push(it); map[k].tong+=Number(valFn(it))||0; });
+  return groups.map((g,i)=>`<div class="day-grp${i===0?' open':''}">
+    <button class="day-head" onclick="this.parentElement.classList.toggle('open')">
+      <span class="dh-date">📅 ${g.ngay}</span>
+      <span class="dh-sum">${g.items.length} mục · <b>${fmt(g.tong)}</b></span>
+      <span class="dh-arrow">▾</span>
+    </button>
+    <div class="day-body">${g.items.map(rowFn).join("")}</div>
+  </div>`).join("");
+}
+function nhapRow(it){ const meta=[it.soLuong+(it.donVi?" "+it.donVi:""), it.ncc].filter(Boolean).join(" · ");
+  return `<div class="nh-row"><div class="info"><div class="ten">${esc(it.ten)}</div><div class="meta">${esc(meta)}</div></div><div class="tien">${fmt(it.thanhTien)}</div><button class="xoa" onclick="xoaNhap(${it.hang},'${esc(it.ten).replace(/'/g,"")}')">✕</button></div>`; }
+function chiRow(it){ return `<div class="nh-row"><div class="info"><div class="ten">${esc(it.loai)}</div><div class="meta">${esc(it.ghiChu||"")}</div></div><div class="tien">${fmt(it.soTien)}</div><button class="xoa" onclick="xoaChiPhi(${it.hang},'${esc(it.loai).replace(/'/g,"")}')">✕</button></div>`; }
+
 async function taiNhap(){
-  const d=await jsonp({ action:"nhap_list", adminPass:PASS, limit:100 }); const box=document.getElementById("nhapList");
+  const d=await jsonp({ action:"nhap_list", adminPass:PASS, limit:200 }); const box=document.getElementById("nhapList");
   if(!d.ok){ box.innerHTML=`<div class="muted">${esc(d.error||"Lỗi tải")}</div>`; return; }
   if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có lần nhập hàng nào.</div>`; return; }
-  box.innerHTML=d.items.map(it=>{ const ng=new Date(it.luc).toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"});
-    const meta=[it.soLuong+(it.donVi?" "+it.donVi:""), it.ncc, ng].filter(Boolean).join(" · ");
-    return `<div class="nh-row"><div class="info"><div class="ten">${esc(it.ten)}</div><div class="meta">${esc(meta)}</div></div><div class="tien">${fmt(it.thanhTien)}</div><button class="xoa" onclick="xoaNhap(${it.hang},'${esc(it.ten).replace(/'/g,"")}')">✕</button></div>`;
-  }).join("");
+  box.innerHTML = veNhomNgay(d.items, nhapRow, it=>it.thanhTien);
 }
 async function xoaNhap(hang, ten){ if(!confirm('Xóa lần nhập "'+ten+'"?')) return;
   const d=await jsonp({ action:"nhap_xoa", adminPass:PASS, hang }); if(d.ok){ toast("Đã xóa ✓"); taiNhap(); taiBaoCao(); } else toast(d.error||"Xóa chưa được",true); }
@@ -577,13 +600,10 @@ async function luuChiPhi(btn){
   else toast(d.error||"Lưu chưa được",true);
 }
 async function taiChiPhi(){
-  const d=await jsonp({ action:"chiphi_list", adminPass:PASS, limit:100 }); const box=document.getElementById("chiList");
+  const d=await jsonp({ action:"chiphi_list", adminPass:PASS, limit:200 }); const box=document.getElementById("chiList");
   if(!d.ok){ box.innerHTML=`<div class="muted">${esc(d.error||"Lỗi tải")}</div>`; return; }
   if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có chi phí nào.</div>`; return; }
-  box.innerHTML=d.items.map(it=>{ const ng=new Date(it.luc).toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"});
-    const meta=[it.ghiChu, ng].filter(Boolean).join(" · ");
-    return `<div class="nh-row"><div class="info"><div class="ten">${esc(it.loai)}</div><div class="meta">${esc(meta)}</div></div><div class="tien">${fmt(it.soTien)}</div><button class="xoa" onclick="xoaChiPhi(${it.hang},'${esc(it.loai).replace(/'/g,"")}')">✕</button></div>`;
-  }).join("");
+  box.innerHTML = veNhomNgay(d.items, chiRow, it=>it.soTien);
 }
 async function xoaChiPhi(hang, loai){ if(!confirm('Xóa chi phí "'+loai+'"?')) return;
   const d=await jsonp({ action:"chiphi_xoa", adminPass:PASS, hang }); if(d.ok){ toast("Đã xóa ✓"); taiChiPhi(); taiBaoCao(); } else toast(d.error||"Xóa chưa được",true); }
