@@ -90,6 +90,13 @@
   .chip{ padding:7px 12px; border-radius:20px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--do); background:rgba(255,255,255,.7); border:1px solid rgba(200,162,75,.45); }
   .cocau{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
   .cc{ font-size:12px; padding:5px 11px; border-radius:9px; background:rgba(168,90,30,.08); color:#A85A1E; } .cc b{ color:var(--muc); }
+  /* Bảng duyệt hóa đơn quét */
+  .quet-head { display:flex; gap:6px; margin-top:14px; font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--muc-nhat); font-weight:700; padding:0 2px 4px; }
+  .quet-tbl { display:flex; flex-direction:column; gap:7px; }
+  .quet-row { display:flex; gap:6px; align-items:center; }
+  .quet-row input { padding:8px 9px; font-size:13px; }
+  .q-ten { flex:1; min-width:0; } .q-sl { width:48px; text-align:center; } .q-dv { width:56px; } .q-dg { width:80px; text-align:right; }
+  .quet-row .xoa { flex:none; width:30px; height:30px; border-radius:8px; border:1px solid #f0c5c5; background:#fff; color:#C0392B; font-size:14px; cursor:pointer; }
 
   /* Thực đơn */
   .grp-head { font-family:"Playfair Display",serif; font-weight:700; color:var(--do); font-size:17px; margin:18px 0 4px; padding-bottom:6px; border-bottom:1px solid rgba(200,162,75,.4); }
@@ -213,6 +220,14 @@
 
   <!-- ============ NHẬP – XUẤT ============ -->
   <section class="sec wrap" id="sec-nx" hidden>
+    <div class="card">
+      <h3>📷 Quét hóa đơn (AI đọc tự động)</h3>
+      <p class="muted" style="margin-top:-6px">Chụp/chọn ảnh hóa đơn giấy → AI tách thành danh sách → bạn duyệt & lưu một lượt.</p>
+      <input id="hdFile" type="file" accept="image/*" capture="environment" style="display:none" onchange="quetHoaDon(event)">
+      <button class="btn" style="width:100%" onclick="document.getElementById('hdFile').click()">📷 Chụp / chọn ảnh hóa đơn</button>
+      <div id="quetTrangThai" class="muted" style="text-align:center"></div>
+      <div id="quetKetQua"></div>
+    </div>
     <div class="card">
       <h3>＋ Ghi nhập hàng</h3>
       <label>Tên hàng *</label>
@@ -426,6 +441,57 @@ function taiNhapXuat(){
   document.getElementById("loaiChips").innerHTML = ["Lương","Mặt bằng","Điện nước","Gas","Nguyên liệu lẻ","Khác"]
     .map(l=>`<button class="chip" onclick="document.getElementById('cLoai').value='${l}'">${l}</button>`).join("");
   taiNhap(); taiChiPhi();
+}
+
+/* ===== Quét hóa đơn bằng AI ===== */
+let quetItems = [];
+function quetHoaDon(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  document.getElementById("quetKetQua").innerHTML = "";
+  document.getElementById("quetTrangThai").textContent = "Đang nén ảnh…";
+  const img = new Image(), reader = new FileReader();
+  reader.onload = e => img.src = e.target.result;
+  img.onload = async () => {
+    const maxW=1500, scale=Math.min(1,maxW/img.width), w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+    const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
+    const anhData = c.toDataURL("image/jpeg", 0.85);
+    document.getElementById("quetTrangThai").textContent = "🤖 AI đang đọc hóa đơn… (10–20 giây)";
+    const d = await jsonp({ action:"doc_hoadon", adminPass:PASS, anhData });
+    if(!d.ok){ document.getElementById("quetTrangThai").textContent=""; toast(d.error||"Đọc hóa đơn lỗi", true); return; }
+    quetItems = (d.items||[]).map(it=>({...it}));
+    document.getElementById("quetTrangThai").textContent = quetItems.length
+      ? `Đọc được ${quetItems.length} mặt hàng — kiểm tra & sửa nếu cần:` : "Không đọc được mặt hàng nào, thử ảnh rõ hơn.";
+    veQuet();
+  };
+  img.onerror = () => { document.getElementById("quetTrangThai").textContent=""; toast("Ảnh lỗi",true); };
+  reader.readAsDataURL(file); ev.target.value = "";
+}
+function veQuet(){
+  const box = document.getElementById("quetKetQua");
+  if(!quetItems.length){ box.innerHTML=""; return; }
+  box.innerHTML =
+    `<div class="quet-head"><span style="flex:1">Tên hàng</span><span style="width:48px;text-align:center">SL</span><span style="width:56px">ĐV</span><span style="width:80px;text-align:right">Đơn giá</span><span style="width:30px"></span></div>`
+    + `<div class="quet-tbl">` + quetItems.map((it,i)=>`<div class="quet-row">
+        <input class="q-ten" value="${esc(it.ten)}" oninput="quetItems[${i}].ten=this.value">
+        <input class="q-sl" type="number" inputmode="decimal" value="${it.soLuong}" oninput="quetItems[${i}].soLuong=Number(this.value)||0">
+        <input class="q-dv" value="${esc(it.donVi||'')}" oninput="quetItems[${i}].donVi=this.value">
+        <input class="q-dg" type="number" inputmode="numeric" value="${it.donGia}" oninput="quetItems[${i}].donGia=Number(this.value)||0">
+        <button class="xoa" onclick="xoaQuet(${i})">✕</button></div>`).join("") + `</div>`
+    + `<div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn" style="flex:1" onclick="luuQuet(this)">Lưu tất cả</button>
+        <button class="btn ghost" onclick="huyQuet()">Hủy</button></div>`;
+}
+function xoaQuet(i){ quetItems.splice(i,1); veQuet();
+  document.getElementById("quetTrangThai").textContent = quetItems.length ? `Còn ${quetItems.length} mặt hàng:` : ""; }
+function huyQuet(){ quetItems=[]; document.getElementById("quetKetQua").innerHTML=""; document.getElementById("quetTrangThai").textContent=""; }
+async function luuQuet(btn){
+  const items = quetItems.filter(it=>(it.ten||"").trim());
+  if(!items.length){ toast("Không có mặt hàng để lưu", true); return; }
+  btn.disabled=true; btn.textContent="Đang lưu…";
+  const d = await jsonp({ action:"nhap_batch", adminPass:PASS, items });
+  btn.disabled=false; btn.textContent="Lưu tất cả";
+  if(d.ok){ toast("Đã lưu "+d.count+" mặt hàng ✓"); huyQuet(); taiNhap(); taiBaoCao(); }
+  else toast(d.error||"Lưu chưa được", true);
 }
 
 /* ============ BÁO CÁO ============ */
