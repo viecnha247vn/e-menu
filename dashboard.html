@@ -97,6 +97,10 @@
   .quet-row input { padding:8px 9px; font-size:13px; }
   .q-ten { flex:1; min-width:0; } .q-sl { width:48px; text-align:center; } .q-dv { width:56px; } .q-dg { width:80px; text-align:right; }
   .quet-row .xoa { flex:none; width:30px; height:30px; border-radius:8px; border:1px solid #f0c5c5; background:#fff; color:#C0392B; font-size:14px; cursor:pointer; }
+  /* Nút gạt Nhập hàng / Chi phí */
+  .nx-toggle { display:flex; gap:6px; background:rgba(122,26,26,.06); border-radius:12px; padding:4px; margin-bottom:16px; }
+  .nx-toggle button { flex:1; padding:11px 4px; border-radius:9px; font-size:13.5px; font-weight:700; cursor:pointer; color:var(--do); background:transparent; border:none; font-family:inherit; }
+  .nx-toggle button.on { background:linear-gradient(180deg,#fff,#F4ECDD); box-shadow:0 2px 6px rgba(122,26,26,.12); }
   /* Nhóm theo ngày (mở/thu gọn) */
   .day-grp { border:1px solid rgba(200,162,75,.3); border-radius:12px; margin-bottom:10px; overflow:hidden; background:rgba(255,255,255,.5); }
   .day-head { width:100%; display:flex; align-items:center; gap:10px; padding:11px 13px; background:linear-gradient(180deg,#fff,#F6EFE0); border:none; cursor:pointer; font-family:inherit; }
@@ -229,6 +233,11 @@
 
   <!-- ============ NHẬP – XUẤT ============ -->
   <section class="sec wrap" id="sec-nx" hidden>
+    <div class="nx-toggle">
+      <button id="tgNhap" class="on" onclick="chonNX('nhap')">📦 Nhập hàng</button>
+      <button id="tgChi" onclick="chonNX('chi')">💸 Chi phí khác</button>
+    </div>
+    <div id="nx-nhap">
     <div class="card">
       <h3>📷 Quét hóa đơn (AI đọc tự động)</h3>
       <p class="muted" style="margin-top:-6px">Chụp/chọn ảnh hóa đơn giấy → AI tách thành danh sách → bạn duyệt & lưu một lượt.</p>
@@ -257,6 +266,8 @@
       <h3>Lịch sử nhập hàng</h3>
       <div id="nhapList"><div class="muted">Đang tải…</div></div>
     </div>
+    </div><!-- /nx-nhap -->
+    <div id="nx-chi" hidden>
     <div class="card">
       <h3>＋ Ghi chi phí khác</h3>
       <label>Loại chi phí</label>
@@ -273,6 +284,7 @@
       <div id="cpCoCau"></div>
       <div id="chiList"><div class="muted">Đang tải…</div></div>
     </div>
+    </div><!-- /nx-chi -->
   </section>
 
   <!-- ============ THỰC ĐƠN ============ -->
@@ -447,9 +459,17 @@ function veCot(colId, demId, list){
 }
 
 function taiNhapXuat(){
+  chonNX('nhap');
   document.getElementById("loaiChips").innerHTML = ["Lương","Mặt bằng","Điện nước","Gas","Nguyên liệu lẻ","Khác"]
     .map(l=>`<button class="chip" onclick="document.getElementById('cLoai').value='${l}'">${l}</button>`).join("");
   taiNhap(); taiChiPhi();
+}
+function chonNX(w){
+  document.getElementById("nx-nhap").hidden = (w!=="nhap");
+  document.getElementById("nx-chi").hidden = (w!=="chi");
+  document.getElementById("tgNhap").classList.toggle("on", w==="nhap");
+  document.getElementById("tgChi").classList.toggle("on", w==="chi");
+  window.scrollTo({ top:0 });
 }
 
 /* ===== Quét hóa đơn bằng AI ===== */
