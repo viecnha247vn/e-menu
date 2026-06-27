@@ -114,6 +114,16 @@
   .kho-row .ton span { display:block; font-size:10px; color:var(--muc-nhat); } .kho-row .ton b { font-family:"Playfair Display",serif; font-size:20px; color:var(--xanh); line-height:1.1; }
   .kho-row .ton.do b { color:#C0392B; }
   .kho-row .xoa { flex:none; width:30px; height:30px; border-radius:8px; border:1px solid #f0c5c5; background:#fff; color:#C0392B; font-size:14px; cursor:pointer; }
+  .khoLoai { display:flex; gap:8px; margin-bottom:4px; }
+  .khoLoai button { flex:1; display:flex; flex-direction:column; align-items:center; gap:1px; padding:9px 4px; border-radius:11px; font-size:13px; font-weight:700; cursor:pointer;
+    color:var(--muc); background:#fff; border:1px solid rgba(200,162,75,.45); font-family:inherit; }
+  .khoLoai button small { font-size:10px; font-weight:500; color:var(--muc-nhat); }
+  .khoLoai button.on { color:#fff; background:linear-gradient(180deg,#2F8F44,var(--xanh)); border-color:var(--xanh); }
+  .khoLoai button.on small { color:rgba(255,255,255,.85); }
+  .kho-grp { font-size:12px; font-weight:800; color:var(--muc-nhat); text-transform:uppercase; letter-spacing:.5px; margin:14px 0 2px; }
+  .kho-grp:first-child { margin-top:0; }
+  .kho-acts { display:flex; flex-direction:column; gap:5px; align-items:flex-end; flex:none; }
+  .warn.blue { background:#1864AB; }
   /* Nhóm theo ngày (mở/thu gọn) */
   .day-grp { border:1px solid rgba(200,162,75,.3); border-radius:12px; margin-bottom:10px; overflow:hidden; background:rgba(255,255,255,.5); }
   .day-head { width:100%; display:flex; align-items:center; gap:10px; padding:11px 13px; background:linear-gradient(180deg,#fff,#F6EFE0); border:none; cursor:pointer; font-family:inherit; }
@@ -312,10 +322,15 @@
       </div>
       <div class="card">
         <h3>＋ Thêm hàng theo dõi</h3>
+        <label>Loại hàng</label>
+        <div class="khoLoai">
+          <button id="klBan" class="on" onclick="setLoaiKho('ban')">🍺 Bán nguyên<small>tự trừ khi bán</small></button>
+          <button id="klNl" onclick="setLoaiKho('nl')">🥩 Nguyên liệu<small>kiểm kho tuần</small></button>
+        </div>
         <label>Tên hàng * (đặt trùng tên trên Thực đơn & khi ghi nhập)</label>
         <input id="kTen" placeholder="VD: Bia Tiger">
         <div class="row">
-          <div><label>Đơn vị bán</label><input id="kDv" placeholder="lon, chai, gói…"></div>
+          <div><label>Đơn vị</label><input id="kDv" placeholder="lon, kg, gói…"></div>
           <div><label>Quy cách (1 đv nhập = ? đv bán)</label><input id="kQc" type="number" inputmode="numeric" value="1"></div>
         </div>
         <div class="row">
@@ -523,20 +538,48 @@ async function taiKho(){
   const d=await jsonp({ action:"kho_list", adminPass:PASS, tu, den });
   const box=document.getElementById("khoList");
   if(!d.ok){ box.innerHTML=`<div class="muted">${esc(d.error||"Lỗi tải")}</div>`; return; }
-  if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có hàng theo dõi. Thêm ở khung dưới.</div>`; return; }
-  box.innerHTML=d.items.map(it=>{ const dv=esc(it.donViBan||"");
-    return `<div class="kho-row">
-      <div class="info"><div class="ten">${esc(it.ten)}${it.canhBao?' <span class="warn">Sắp hết</span>':''}</div>
-        <div class="meta">Nhập ${it.nhap} · Bán ${it.ban} · Xuất kỳ này: <b>${it.banKy} ${dv}</b></div></div>
-      <div class="ton ${it.canhBao?'do':''}"><span>Tồn</span><b>${it.ton}</b><span>${dv}</span></div>
-      <button class="xoa" onclick="xoaKho(${it.hang},'${esc(it.ten).replace(/'/g,"")}')">✕</button>
-    </div>`;
-  }).join("");
+  if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có hàng theo dõi. Quét hóa đơn hoặc thêm ở khung dưới.</div>`; return; }
+  const ban=d.items.filter(x=>x.loai==="ban"), nl=d.items.filter(x=>x.loai==="nl");
+  let html="";
+  if(ban.length) html+=`<div class="kho-grp">🍺 Bán nguyên — tự trừ khi bán</div>`+ban.map(khoRow).join("");
+  if(nl.length)  html+=`<div class="kho-grp">🥩 Nguyên liệu — kiểm kho hằng tuần</div>`+nl.map(khoRow).join("");
+  box.innerHTML=html;
+}
+function khoRow(it){
+  const dv=esc(it.donViBan||""); const tenJs=esc(it.ten).replace(/'/g,"");
+  const badges=(it.canhBao?'<span class="warn">Sắp hết</span>':'')+(it.loai==="nl"&&it.canKiem?' <span class="warn blue">Cần kiểm</span>':'');
+  let meta;
+  if(it.loai==="ban"){
+    meta=`Nhập ${it.nhap} · Bán ${it.ban} · Xuất kỳ này: <b>${it.banKy} ${dv}</b>`;
+  }else{
+    const kiemTxt=it.chuaKiem?"Chưa kiểm lần nào":("Kiểm "+it.ngayKiem+" ngày trước");
+    const dungTxt=(it.daDung!=null)?` · Đã dùng: <b>${it.daDung} ${dv}</b>`:"";
+    meta=`Nhập ${it.nhap}${dungTxt} · ${kiemTxt}`;
+  }
+  const acts=it.loai==="nl"
+    ? `<div class="kho-acts"><button class="btn sm ghost" onclick="kiemKho('${tenJs}','${dv}')">Kiểm</button><button class="xoa" onclick="xoaKho(${it.hang},'${tenJs}')">✕</button></div>`
+    : `<button class="xoa" onclick="xoaKho(${it.hang},'${tenJs}')">✕</button>`;
+  return `<div class="kho-row">
+    <div class="info"><div class="ten">${esc(it.ten)} ${badges}</div><div class="meta">${meta}</div></div>
+    <div class="ton ${it.canhBao?'do':''}"><span>Tồn</span><b>${it.ton}</b><span>${dv}</span></div>
+    ${acts}</div>`;
+}
+let loaiKhoMoi="ban";
+function setLoaiKho(v){ loaiKhoMoi=v;
+  document.getElementById("klBan").classList.toggle("on",v==="ban");
+  document.getElementById("klNl").classList.toggle("on",v==="nl");
+  document.getElementById("kDv").placeholder = v==="ban" ? "lon, chai, gói…" : "kg, bó, hộp…"; }
+async function kiemKho(ten, dv){
+  const v=prompt('Kiểm kho "'+ten+'"\nNhập số '+(dv||'')+' thực tế đang còn:');
+  if(v===null) return; const so=Number(v);
+  if(isNaN(so)||so<0){ toast("Số không hợp lệ",true); return; }
+  const d=await jsonp({ action:"kiemkho_luu", adminPass:PASS, ten, soLuong:so });
+  if(d.ok){ toast("Đã lưu kiểm kho ✓"); taiKho(); } else toast(d.error||"Lưu chưa được",true);
 }
 async function themKho(btn){
   const ten=document.getElementById("kTen").value.trim(); if(!ten){ toast("Nhập tên hàng",true); return; }
   btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang lưu…";
-  const d=await jsonp({ action:"kho_them", adminPass:PASS, ten,
+  const d=await jsonp({ action:"kho_them", adminPass:PASS, ten, loai:loaiKhoMoi,
     donViBan:document.getElementById("kDv").value.trim(),
     quyCach:Number(document.getElementById("kQc").value)||1,
     tonDau:Number(document.getElementById("kTon").value)||0,
