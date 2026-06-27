@@ -78,8 +78,10 @@
     margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #463c32; }
   .t-ban { font-family:"Playfair Display",serif; font-weight: 800; font-size: 18px; color:var(--dong-sang); }
   .t-time { font-size: 12px; color: #9c8d7d; }
-  .t-mon { display: flex; gap: 8px; font-size: 16px; padding: 4px 0; }
+  .t-mon { display: flex; gap: 8px; align-items: center; font-size: 16px; padding: 4px 0; }
   .t-mon b { color: #FFB264; min-width: 30px; }
+  .t-mon .t-tra { margin-left: auto; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 8px;
+    border: 1px solid rgba(255,150,120,.4); background: rgba(192,57,43,.18); color: #ffb3a3; cursor: pointer; white-space: nowrap; }
   .t-note { font-size: 13px; color: #ffd8a8; background: #3a2c18; padding: 6px 9px; border-radius: 7px; margin-top: 6px; }
   .act { width: 100%; color: #fff; border: none; padding: 11px; border-radius: 9px;
     font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; box-shadow:inset 0 1px 0 rgba(255,255,255,.18); }
@@ -291,10 +293,26 @@ function ticket(o) {
   return `
     <div class="ticket ${TT[o.trangThai].tcls}">
       <div class="t-head"><span class="t-ban">${o.ban}</span><span class="t-time">${time}</span></div>
-      ${o.items.map(i=>`<div class="t-mon"><b>×${i.soLuong}</b><span>${i.ten}</span></div>`).join("")}
+      ${o.items.map((i,idx)=>`<div class="t-mon"><b>×${i.soLuong}</b><span>${i.ten}</span>${i.gia>0?`<button class="t-tra" onclick="traMon('${o.id}',${idx},${i.soLuong},'${String(i.ten||"").replace(/'/g,"")}')">− Trả</button>`:``}</div>`).join("")}
       ${o.note ? `<div class="t-note">📝 ${o.note}</div>` : ``}
       ${btn}
     </div>`;
+}
+
+async function traMon(id, idx, max, ten) {
+  let soTra = 1;
+  if (max > 1) {
+    const v = prompt('Khách trả lại "' + ten + '"\nNhập số lượng trả (tối đa ' + max + '):', '1');
+    if (v === null) return;
+    soTra = parseInt(v, 10);
+    if (isNaN(soTra) || soTra < 1) { alert("Số không hợp lệ"); return; }
+    if (soTra > max) soTra = max;
+  } else {
+    if (!confirm('Trả lại / bỏ "' + ten + '" khỏi đơn?')) return;
+  }
+  const d = await jsonp({ action: "tra_mon", id, idx, soTra, pin: PIN });
+  if (!d || !d.ok) { alert((d && d.error) || "Không trả được"); return; }
+  taiDon();
 }
 
 function doi(id, trangThai) {
