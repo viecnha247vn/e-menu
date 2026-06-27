@@ -57,9 +57,21 @@
   .kpi .val { font-family:"Playfair Display",serif; font-weight:800; font-size:23px; margin-top:5px; color:var(--do); }
   .kpi.dt .val{ color:var(--xanh); }
   .kpi.nhap .val{ color:#B5651D; }
+  .kpi.khac .val{ color:#A85A1E; }
   .kpi.loi .val{ color:var(--do); }
   .kpi.hd .val{ color:var(--muc); }
+  .kpi.bien .val{ color:var(--do); }
   .kpi.loi.am .val{ color:#C0392B; }
+  .delta{ font-size:11px; font-weight:700; margin-top:4px; min-height:14px; color:var(--muc-nhat); }
+  .delta.up{ color:var(--xanh); } .delta.down{ color:#C0392B; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-bottom:8px; }
+  .chip{ padding:7px 12px; border-radius:20px; font-size:12.5px; font-weight:600; cursor:pointer;
+    color:var(--do); background:rgba(255,255,255,.7); border:1px solid rgba(200,162,75,.45); }
+  .chip:active{ background:#F4ECDD; }
+  .cocau{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .cc{ font-size:12px; padding:5px 11px; border-radius:9px; background:rgba(168,90,30,.08); color:#A85A1E; }
+  .cc b{ color:var(--muc); }
 
   /* Biểu đồ */
   .chart { display:flex; align-items:flex-end; gap:8px; height:150px; padding-top:6px; }
@@ -124,10 +136,12 @@
   </div>
 
   <div class="kpis" id="kpis">
-    <div class="kpi dt"><div class="lab">Doanh thu (bán ra)</div><div class="val" id="kDt">—</div></div>
-    <div class="kpi nhap"><div class="lab">Chi phí nhập hàng</div><div class="val" id="kNhap">—</div></div>
-    <div class="kpi loi" id="kLoiBox"><div class="lab">Lợi nhuận gộp</div><div class="val" id="kLoi">—</div></div>
+    <div class="kpi dt"><div class="lab">Doanh thu</div><div class="val" id="kDt">—</div><div class="delta" id="dDt"></div></div>
     <div class="kpi hd"><div class="lab">Số hóa đơn</div><div class="val" id="kHd">—</div></div>
+    <div class="kpi nhap"><div class="lab">Chi phí nhập</div><div class="val" id="kNhap">—</div></div>
+    <div class="kpi khac"><div class="lab">Chi phí khác</div><div class="val" id="kKhac">—</div></div>
+    <div class="kpi loi" id="kLoiBox"><div class="lab">Lợi nhuận thật</div><div class="val" id="kLoi">—</div><div class="delta" id="dLoi"></div></div>
+    <div class="kpi bien"><div class="lab">Biên lợi nhuận</div><div class="val" id="kBien">—</div></div>
   </div>
 
   <div class="card">
@@ -161,6 +175,24 @@
   <div class="card">
     <h3>Lịch sử nhập hàng</h3>
     <div id="nhapList"><div class="muted">Đang tải…</div></div>
+  </div>
+
+  <div class="card">
+    <h3>＋ Ghi chi phí khác</h3>
+    <label>Loại chi phí</label>
+    <div class="chips" id="loaiChips"></div>
+    <input id="cLoai" placeholder="VD: Lương, Mặt bằng, Điện nước…">
+    <div class="row">
+      <div><label>Số tiền (đ)</label><input id="cTien" type="number" inputmode="numeric" placeholder="0"></div>
+      <div><label>Ghi chú</label><input id="cGc" placeholder="(tùy chọn)"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:16px" onclick="luuChiPhi(this)">Lưu chi phí</button>
+  </div>
+
+  <div class="card">
+    <h3>Lịch sử chi phí khác</h3>
+    <div id="cpCoCau"></div>
+    <div id="chiList"><div class="muted">Đang tải…</div></div>
   </div>
 
 </div>
@@ -208,13 +240,23 @@ async function dangNhap(){
   }
 }
 
+function vnNgay(daysAgo){
+  // Mốc nửa đêm theo giờ Việt Nam (GMT+7), trả về epoch ms — đúng dù máy ở múi giờ nào
+  const vn = new Date(Date.now() + 7*3600000);
+  return Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate() - daysAgo, 0, 0, 0) - 7*3600000;
+}
 function khoangKy(){
   const den = Date.now();
-  const d = new Date(); d.setHours(0,0,0,0);
-  if(ky==="today") return { tu:d.getTime(), den };
-  if(ky==="7"){ d.setDate(d.getDate()-6); return { tu:d.getTime(), den }; }
-  if(ky==="30"){ d.setDate(d.getDate()-29); return { tu:d.getTime(), den }; }
+  if(ky==="today") return { tu:vnNgay(0), den };
+  if(ky==="7") return { tu:vnNgay(6), den };
+  if(ky==="30") return { tu:vnNgay(29), den };
   return { tu:0, den };
+}
+function kyTruoc(){
+  if(ky==="today") return { tu:vnNgay(1), den:vnNgay(0) };
+  if(ky==="7") return { tu:vnNgay(13), den:vnNgay(6) };
+  if(ky==="30") return { tu:vnNgay(59), den:vnNgay(29) };
+  return null;
 }
 function chonKy(k){
   ky=k;
@@ -222,19 +264,52 @@ function chonKy(k){
   taiBaoCao();
 }
 
-function taiTatCa(){ taiBaoCao(); taiNhap(); }
+function taiTatCa(){
+  document.getElementById("loaiChips").innerHTML = ["Lương","Mặt bằng","Điện nước","Gas","Nguyên liệu lẻ","Khác"]
+    .map(l=>`<button class="chip" onclick="document.getElementById('cLoai').value='${l}'">${l}</button>`).join("");
+  taiBaoCao(); taiNhap(); taiChiPhi();
+}
 
 async function taiBaoCao(){
   const { tu, den } = khoangKy();
   const d = await jsonp({ action:"bao_cao", adminPass:PASS, tu, den });
   if(!d.ok){ toast(d.error||"Lỗi tải báo cáo", true); return; }
   document.getElementById("kDt").textContent = fmt(d.doanhThu);
-  document.getElementById("kNhap").textContent = fmt(d.chiNhap);
-  document.getElementById("kLoi").textContent = fmt(d.loiNhuan);
   document.getElementById("kHd").textContent = d.soHD + " hóa đơn";
+  document.getElementById("kNhap").textContent = fmt(d.chiNhap);
+  document.getElementById("kKhac").textContent = fmt(d.chiKhac);
+  document.getElementById("kLoi").textContent = fmt(d.loiNhuan);
+  const bien = d.doanhThu > 0 ? Math.round(d.loiNhuan / d.doanhThu * 100) : 0;
+  document.getElementById("kBien").textContent = bien + "%";
   document.getElementById("kLoiBox").classList.toggle("am", d.loiNhuan < 0);
   veChart(d.theoNgay || {}, d.nhapTheoNgay || {});
   veTop(d.topMon || []);
+  veCoCau(d.chiKhacTheoLoai || {});
+
+  // So sánh với kỳ trước
+  const pv = kyTruoc();
+  if(pv){
+    const d2 = await jsonp({ action:"bao_cao", adminPass:PASS, tu:pv.tu, den:pv.den });
+    if(d2.ok){ veDelta("dDt", d.doanhThu, d2.doanhThu); veDelta("dLoi", d.loiNhuan, d2.loiNhuan); }
+  } else {
+    document.getElementById("dDt").textContent = ""; document.getElementById("dLoi").textContent = "";
+  }
+}
+function veDelta(id, cur, prev){
+  const el = document.getElementById(id);
+  if(prev === 0 && cur === 0){ el.textContent=""; el.className="delta"; return; }
+  const up = cur >= prev;
+  const base = Math.abs(prev);
+  const pct = base > 0 ? Math.round(Math.abs(cur-prev)/base*100) : 100;
+  el.textContent = (up?"▲ ":"▼ ") + pct + "% vs kỳ trước";
+  el.className = "delta " + (up?"up":"down");
+}
+function veCoCau(map){
+  const box = document.getElementById("cpCoCau");
+  const keys = Object.keys(map||{});
+  if(!keys.length){ box.innerHTML=""; return; }
+  box.innerHTML = `<div class="cocau">` +
+    keys.sort((a,b)=>map[b]-map[a]).map(k=>`<span class="cc"><b>${esc(k)}</b> ${fmt(map[k])}</span>`).join("") + `</div>`;
 }
 
 function veChart(dt, nhap){
@@ -317,6 +392,41 @@ async function xoaNhap(hang, ten){
   if(!confirm("Xóa lần nhập \"" + ten + "\"?")) return;
   const d = await jsonp({ action:"nhap_xoa", adminPass:PASS, hang });
   if(d.ok){ toast("Đã xóa ✓"); taiNhap(); taiBaoCao(); }
+  else toast(d.error||"Xóa chưa được", true);
+}
+
+async function luuChiPhi(btn){
+  const loai = document.getElementById("cLoai").value.trim() || "Khác";
+  const tien = Number(document.getElementById("cTien").value)||0;
+  if(tien<=0){ toast("Nhập số tiền", true); return; }
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang lưu…";
+  const d = await jsonp({ action:"chiphi_them", adminPass:PASS, loai, soTien:tien, ghiChu:document.getElementById("cGc").value.trim() });
+  btn.disabled=false; btn.textContent=cu;
+  if(d.ok){
+    toast("Đã lưu chi phí ✓");
+    ["cLoai","cTien","cGc"].forEach(id=>document.getElementById(id).value="");
+    taiChiPhi(); taiBaoCao();
+  } else toast(d.error||"Lưu chưa được", true);
+}
+async function taiChiPhi(){
+  const d = await jsonp({ action:"chiphi_list", adminPass:PASS, limit:100 });
+  const box = document.getElementById("chiList");
+  if(!d.ok){ box.innerHTML=`<div class="muted">${esc(d.error||"Lỗi tải")}</div>`; return; }
+  if(!d.items.length){ box.innerHTML=`<div class="muted">Chưa có chi phí nào.</div>`; return; }
+  box.innerHTML = d.items.map(it => {
+    const ng = new Date(it.luc).toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const meta = [it.ghiChu, ng].filter(Boolean).join(" · ");
+    return `<div class="nh-row">
+      <div class="info"><div class="ten">${esc(it.loai)}</div><div class="meta">${esc(meta)}</div></div>
+      <div class="tien">${fmt(it.soTien)}</div>
+      <button class="xoa" onclick="xoaChiPhi(${it.hang}, '${esc(it.loai).replace(/'/g,"")}')">✕</button>
+    </div>`;
+  }).join("");
+}
+async function xoaChiPhi(hang, loai){
+  if(!confirm("Xóa chi phí \"" + loai + "\"?")) return;
+  const d = await jsonp({ action:"chiphi_xoa", adminPass:PASS, hang });
+  if(d.ok){ toast("Đã xóa ✓"); taiChiPhi(); taiBaoCao(); }
   else toast(d.error||"Xóa chưa được", true);
 }
 </script>
