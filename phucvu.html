@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Phục vụ — QUÁN VIỆT</title>
+<style>
+  :root{ --nen:#1a1411; --the:#241c17; --the2:#2e2620; --vien:#3a302a; --chu:#f3e9da; --mo:#a3907d;
+         --do:#c0392b; --vang:#d9a441; --dong-sang:#e9c987; --xanh:#2e8b57; --xanh-sang:#3fae6c; }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--nen); color:var(--chu)}
+  button{font:inherit; cursor:pointer}
+
+  /* PIN */
+  .pinbox{position:fixed; inset:0; background:rgba(10,6,5,.92); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px}
+  .pinbox .panel{background:linear-gradient(180deg,#2E2620,#221B17); padding:30px; border-radius:18px; width:320px; text-align:center; border:1px solid var(--vien); box-shadow:0 20px 50px rgba(0,0,0,.4)}
+  .pinbox h2{margin:0 0 6px; font-size:21px; color:var(--dong-sang)}
+  .pinbox p{font-size:13px; color:var(--mo); margin:0 0 16px}
+  .pinbox input{width:100%; padding:12px; font-size:22px; text-align:center; letter-spacing:6px; border-radius:11px; border:1px solid var(--vien); background:#1b1511; color:var(--chu)}
+  .pinbox button{width:100%; margin-top:14px; padding:13px; color:#fff; border:none; border-radius:11px; font-weight:700; font-size:15px; background:var(--do)}
+  .pinbox .err{color:#ff8787; font-size:13px; min-height:18px; margin-top:8px}
+
+  /* Header */
+  .top{position:sticky; top:0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:10px;
+       padding:12px 14px calc(12px + env(safe-area-inset-top)); padding-top:max(12px,env(safe-area-inset-top));
+       background:linear-gradient(180deg,#2a211b,#211a15); border-bottom:1px solid var(--vien)}
+  .brand{font-weight:800; font-size:17px; color:var(--dong-sang)}
+  .brand span{color:var(--chu); font-weight:600}
+  .tools button{background:var(--the2); border:1px solid var(--vien); color:var(--chu); border-radius:10px; padding:8px 11px; font-size:13px; font-weight:600}
+
+  .wrap{max-width:760px; margin:0 auto; padding:14px 14px calc(28px + env(safe-area-inset-bottom))}
+  .sec-h{font-size:14px; letter-spacing:.5px; color:var(--mo); margin:18px 4px 9px; font-weight:700; text-transform:uppercase}
+  section:first-child .sec-h{margin-top:6px}
+
+  /* Thông báo */
+  .tb-list{display:flex; flex-direction:column; gap:10px}
+  .tb-empty{color:var(--mo); font-size:14px; padding:14px; text-align:center; background:var(--the); border-radius:12px; border:1px dashed var(--vien)}
+  .tb{display:flex; align-items:center; gap:12px; background:linear-gradient(180deg,#3a2a16,#332512); border:1px solid #5a4220; border-radius:13px; padding:12px 13px; animation:pop .25s}
+  .tb.bill{background:linear-gradient(180deg,#1f3326,#1a2c20); border-color:#2f5a3f}
+  @keyframes pop{from{transform:scale(.97); opacity:.4} to{transform:scale(1); opacity:1}}
+  .tb .ic{font-size:24px}
+  .tb .info{flex:1; min-width:0}
+  .tb .info b{display:block; font-size:15px}
+  .tb .info small{color:var(--mo); font-size:12.5px}
+  .tb .acts{display:flex; gap:7px; flex-shrink:0}
+  .tb .acts button{border:none; border-radius:9px; padding:9px 11px; font-size:13px; font-weight:700}
+  .b-ok{background:#42352a; color:#e9d9c5}
+  .b-bill{background:var(--xanh); color:#fff}
+
+  /* Bàn */
+  .ban-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:11px}
+  .ban-card{background:linear-gradient(180deg,var(--the2),var(--the)); border:1px solid var(--vien); border-radius:14px; padding:13px; text-align:left; color:var(--chu); position:relative; transition:transform .08s}
+  .ban-card:active{transform:scale(.97)}
+  .ban-card .bn{font-size:17px; font-weight:800; color:var(--dong-sang)}
+  .ban-card .mt{font-size:12.5px; color:var(--mo); margin:3px 0 8px}
+  .ban-card .tg{font-size:18px; font-weight:800}
+  .ban-card .xong{display:inline-block; margin-top:8px; font-size:11.5px; font-weight:700; color:#7fe0a3; background:rgba(63,174,108,.14); border:1px solid #2f5a3f; border-radius:20px; padding:3px 9px}
+  .ban-empty{grid-column:1/-1; color:var(--mo); text-align:center; padding:26px; background:var(--the); border-radius:12px; border:1px dashed var(--vien)}
+
+  /* Modal */
+  .modal{position:fixed; inset:0; z-index:60; display:none; align-items:flex-end; justify-content:center; background:rgba(8,5,4,.66)}
+  .modal.show{display:flex}
+  .sheet{background:#221b16; width:100%; max-width:560px; max-height:90vh; overflow:auto; border-radius:20px 20px 0 0; border:1px solid var(--vien); border-bottom:none; padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+  .sheet h3{margin:2px 0 3px; font-size:19px; color:var(--dong-sang)}
+  .sheet .sub{color:var(--mo); font-size:13px; margin:0 0 14px}
+  .line{display:flex; align-items:center; gap:10px; padding:11px 0; border-bottom:1px solid #322821}
+  .line .l-ten{flex:1}
+  .line .l-ten b{font-weight:600}
+  .line .l-gia{color:var(--mo); font-size:13px}
+  .line .l-tra{background:#4a2420; color:#ffb3aa; border:1px solid #6e3530; border-radius:9px; padding:8px 11px; font-size:13px; font-weight:700; flex-shrink:0}
+  .tongrow{display:flex; justify-content:space-between; align-items:center; margin-top:14px; padding-top:12px; border-top:2px solid var(--vien); font-size:19px; font-weight:800}
+  .tongrow b{color:var(--dong-sang)}
+  .btn{display:block; width:100%; border:none; border-radius:12px; padding:14px; font-size:15px; font-weight:800; color:#fff; background:var(--do); margin-top:12px}
+  .btn.green{background:var(--xanh)}
+  .btn.ghost{background:transparent; color:var(--mo); border:1px solid var(--vien)}
+  .qrwrap{text-align:center; margin:6px 0 4px}
+  .qrwrap img{width:230px; max-width:74%; border-radius:14px; background:#fff; padding:10px}
+  .qr-note{color:var(--mo); font-size:13px; margin-top:8px}
+  .inp{width:100%; padding:13px; font-size:15px; border-radius:11px; border:1px solid var(--vien); background:#1b1511; color:var(--chu); margin-top:4px}
+  .hd-note{font-size:13px; min-height:18px; margin-top:8px}
+
+  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:11px 18px; border-radius:30px; font-size:14px; opacity:0; transition:.25s; z-index:120; pointer-events:none; max-width:90%}
+  .toast.show{opacity:.95; transform:translateX(-50%) translateY(0)}
+  .toast.err{background:#7a1f1f}
+  .foot{text-align:center; color:#5a4c40; font-size:11px; margin-top:24px}
+</style>
+</head>
+<body>
+
+<div class="pinbox" id="pinbox">
+  <div class="panel">
+    <h2>🧑‍🍳 Phục vụ</h2>
+    <p>Nhập mã PIN nhân viên để vào</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
+    <div class="err" id="pinErr"></div>
+    <button onclick="vao()">Vào ca</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <header class="top">
+    <div class="brand">🧑‍🍳 Phục vụ · <span id="tenQuan">QUÁN VIỆT</span></div>
+    <div class="tools"><button id="btnChuong" onclick="toggleChuong()">🔔 Chuông: Bật</button></div>
+  </header>
+
+  <main class="wrap">
+    <section>
+      <div class="sec-h">🔔 Thông báo từ khách</div>
+      <div id="thongBao" class="tb-list"></div>
+    </section>
+    <section>
+      <div class="sec-h">🪑 Bàn đang phục vụ</div>
+      <div id="banList" class="ban-grid"></div>
+    </section>
+    <div class="foot">Trang phục vụ v1.0 · QUÁN VIỆT</div>
+  </main>
+</div>
+
+<!-- Chi tiết bàn -->
+<div class="modal" id="modalBan">
+  <div class="sheet">
+    <h3 id="mbTitle">Bàn</h3>
+    <p class="sub">Các món đã gọi · bấm “− Trả” nếu khách trả/bỏ món</p>
+    <div id="mbLines"></div>
+    <div class="tongrow"><span>Tổng tạm tính</span><b id="mbTong">0đ</b></div>
+    <button class="btn green" id="mbPay" onclick="moTinhTien()">💳 Tính tiền bàn này</button>
+    <button class="btn ghost" onclick="dong('modalBan')">Đóng</button>
+  </div>
+</div>
+
+<!-- Thanh toán -->
+<div class="modal" id="modalPay">
+  <div class="sheet">
+    <h3 id="mpTitle">Tính tiền</h3>
+    <p class="sub">Khách quét mã QR để chuyển khoản, hoặc trả tiền mặt</p>
+    <div class="tongrow" style="margin-top:0; border-top:none; padding-top:0"><span>Tổng cần thu</span><b id="mpTong">0đ</b></div>
+    <div class="qrwrap" id="mpQR"></div>
+    <button class="btn green" onclick="dongBan()">✅ Đã nhận tiền → Đóng bàn</button>
+    <button class="btn ghost" onclick="dong('modalPay')">Quay lại</button>
+  </div>
+</div>
+
+<!-- Hóa đơn sau khi đóng bàn -->
+<div class="modal" id="modalHD">
+  <div class="sheet">
+    <h3>🧾 Gửi hóa đơn cho khách</h3>
+    <p class="sub" id="mhSub">Bàn đã đóng. Nhập email nếu khách cần hóa đơn điện tử.</p>
+    <input id="mhEmail" class="inp" type="email" inputmode="email" placeholder="Email khách (có thể bỏ qua)">
+    <div class="hd-note" id="mhNote"></div>
+    <button class="btn green" onclick="guiHD(this)">📧 Gửi hóa đơn</button>
+    <button class="btn ghost" onclick="dong('modalHD')">Xong, bỏ qua</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
+let PIN = "";
+let CAUHINH = null;
+
+async function jsonp(params){
+  try{ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(params)}); return await r.json(); }
+  catch(e){ return { ok:false, error:"Lỗi kết nối mạng: "+e }; }
+}
+const fmt = n => (Number(n)||0).toLocaleString("vi-VN") + "đ";
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg, err){ const t=document.getElementById("toast"); t.textContent=msg; t.className="toast show"+(err?" err":""); setTimeout(()=>t.className="toast",2200); }
+function dong(id){ document.getElementById(id).classList.remove("show"); }
+
+/* ===== Chuông ===== */
+let audio=null, chuongBat=true;
+function toggleChuong(){ chuongBat=!chuongBat; document.getElementById("btnChuong").textContent="🔔 Chuông: "+(chuongBat?"Bật":"Tắt"); if(chuongBat) ting(); }
+function ting(){
+  if(!audio || !chuongBat) return;
+  try{ [0,0.16].forEach((t,k)=>{ const o=audio.createOscillator(), g=audio.createGain(); o.connect(g); g.connect(audio.destination);
+    o.type="sine"; o.frequency.value=k===0?880:1175;
+    g.gain.setValueAtTime(0.0001,audio.currentTime+t); g.gain.exponentialRampToValueAtTime(0.25,audio.currentTime+t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,audio.currentTime+t+0.14);
+    o.start(audio.currentTime+t); o.stop(audio.currentTime+t+0.15); }); }catch(e){}
+}
+
+/* ===== Đăng nhập ===== */
+document.getElementById("pinInput").addEventListener("keydown", e=>{ if(e.key==="Enter") vao(); });
+async function vao(){
+  const v=document.getElementById("pinInput").value.trim();
+  if(!v){ document.getElementById("pinErr").textContent="Nhập mã PIN"; return; }
+  PIN=v;
+  try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  document.getElementById("pinErr").textContent="Đang vào…";
+  // Thử 1 lệnh pin nhẹ để xác thực? -> dùng list (công khai) + sẽ kiểm pin khi thao tác. Vào thẳng.
+  document.getElementById("pinbox").style.display="none";
+  document.getElementById("app").style.display="block";
+  await taiCauHinh();
+  taiDon(); lenLich();
+}
+async function taiCauHinh(){ const d=await jsonp({action:"cau_hinh"}); if(d&&d.ok){ CAUHINH=d; if(d.tenQuan) document.getElementById("tenQuan").textContent=d.tenQuan; } }
+
+/* ===== Tải đơn ===== */
+let dangTai=false, firstLoad=true;
+let seenReq=new Set();
+let banData={};        // { "05": {ban, tong, lines:[{id,idx,ten,gia,soLuong}], coXong} }
+let reqData=[];        // [{id, ban, loai, ten, note, soTra}]
+let banMo="";          // bàn đang mở modal chi tiết
+
+const laSV = o => o.items.every(i => Number(i.gia) === 0);
+
+let bepTimer=null;
+function lenLich(){ if(bepTimer) clearInterval(bepTimer); bepTimer=setInterval(taiDon, 3000); }
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden && PIN){ taiDon(); lenLich(); } });
+window.addEventListener("focus", ()=>{ if(PIN) taiDon(); });
+
+async function taiDon(){
+  if(dangTai) return; dangTai=true;
+  try{
+    const d=await jsonp({action:"list"});
+    if(d && d.ok){
+      const orders=(d.orders||[]).sort((a,b)=>a.luc-b.luc);
+
+      // --- Yêu cầu phục vụ (đơn toàn món giá 0) ---
+      const reqs=[];
+      orders.forEach(o=>{
+        if(!laSV(o) || !o.items.length) return;
+        const ten=o.items[0].ten||"Yêu cầu";
+        const laBill=/tính tiền/i.test(ten);
+        reqs.push({ id:o.id, ban:o.ban, ten, note:o.note||"", laBill, soTra:Number(o.items[0].soLuong)||1 });
+      });
+      // chuông khi có yêu cầu mới
+      const coMoi=reqs.some(r=>!seenReq.has(r.id));
+      if(!firstLoad && coMoi) ting();
+      reqs.forEach(r=>seenReq.add(r.id));
+      [...seenReq].forEach(id=>{ if(!reqs.find(r=>r.id===id)) seenReq.delete(id); });
+      reqData=reqs;
+
+      // --- Bàn (đơn có món tính tiền) ---
+      const map={};
+      orders.forEach(o=>{
+        if(laSV(o)) return;
+        const ban=o.ban;
+        if(!map[ban]) map[ban]={ ban, tong:0, lines:[], coXong:false };
+        if(o.trangThai==="xong") map[ban].coXong=true;
+        o.items.forEach((it,idx)=>{
+          if(Number(it.gia)<=0) return;
+          map[ban].tong += it.gia*it.soLuong;
+          map[ban].lines.push({ id:o.id, idx, ten:it.ten, gia:it.gia, soLuong:it.soLuong });
+        });
+      });
+      banData=map;
+
+      firstLoad=false;
+      veThongBao(); veBan();
+      if(banMo && banData[banMo]) veChiTietBan(banMo);   // làm mới modal đang mở
+      else if(banMo && !banData[banMo]){ banMo=""; dong("modalBan"); }
+    }
+  }catch(e){ /* giữ màn hình cũ khi rớt mạng */ }
+  finally{ dangTai=false; }
+}
+
+function veThongBao(){
+  const box=document.getElementById("thongBao");
+  if(!reqData.length){ box.innerHTML='<div class="tb-empty">Chưa có yêu cầu nào từ khách.</div>'; return; }
+  box.innerHTML=reqData.map(r=>{
+    const sub = r.note ? esc(r.note) : (r.laBill?"Khách xin tính tiền":"Khách cần hỗ trợ");
+    const billBtn = r.laBill ? `<button class="b-bill" onclick="moTinhTien('${esc(r.ban)}')">Tính tiền</button>` : "";
+    return `<div class="tb ${r.laBill?'bill':''}">
+      <div class="ic">${r.laBill?'🧾':'📣'}</div>
+      <div class="info"><b>Bàn ${esc(r.ban)} — ${esc(r.ten.replace(/^[^\wÀ-ỹ]+\s*/,''))||'Yêu cầu'}</b><small>${sub}</small></div>
+      <div class="acts">${billBtn}<button class="b-ok" onclick="xongYC('${r.id}',${r.soTra})">Đã xử lý</button></div>
+    </div>`;
+  }).join("");
+}
+
+function veBan(){
+  const box=document.getElementById("banList");
+  const list=Object.values(banData).sort((a,b)=>String(a.ban).localeCompare(String(b.ban),undefined,{numeric:true}));
+  if(!list.length){ box.innerHTML='<div class="ban-empty">Chưa có bàn nào đang phục vụ.</div>'; return; }
+  box.innerHTML=list.map(b=>{
+    const soMon=b.lines.reduce((s,l)=>s+l.soLuong,0);
+    return `<button class="ban-card" onclick="moBan('${esc(b.ban)}')">
+      <div class="bn">Bàn ${esc(b.ban)}</div>
+      <div class="mt">${soMon} món</div>
+      <div class="tg">${fmt(b.tong)}</div>
+      ${b.coXong?'<div class="xong">● Có món đã xong — bưng ra</div>':''}
+    </button>`;
+  }).join("");
+}
+
+/* ===== Chi tiết bàn ===== */
+function moBan(ban){ banMo=ban; veChiTietBan(ban); document.getElementById("modalBan").classList.add("show"); }
+function veChiTietBan(ban){
+  const b=banData[ban]; if(!b) return;
+  document.getElementById("mbTitle").textContent="Bàn "+ban;
+  document.getElementById("mbTong").textContent=fmt(b.tong);
+  const pay=document.getElementById("mbPay"); pay.disabled=(b.tong<=0); pay.style.opacity=b.tong<=0?.5:1;
+  document.getElementById("mbLines").innerHTML = b.lines.length ? b.lines.map(l=>`
+    <div class="line">
+      <div class="l-ten"><b>${l.soLuong}× ${esc(l.ten)}</b><div class="l-gia">${fmt(l.gia)} / món</div></div>
+      <button class="l-tra" onclick="traMon('${l.id}',${l.idx},'${esc(l.ten).replace(/'/g,"\\'")}',${l.soLuong})">− Trả</button>
+    </div>`).join("") : '<div class="tb-empty" style="background:#2a211b">Bàn chưa có món tính tiền.</div>';
+}
+
+async function traMon(id, idx, ten, max){
+  let soTra=max;
+  if(max>1){
+    const v=prompt('Khách trả lại "'+ten+'"\nNhập số lượng trả (tối đa '+max+'):','1');
+    if(v===null) return;
+    soTra=parseInt(v,10);
+    if(isNaN(soTra)||soTra<1){ alert("Số không hợp lệ"); return; }
+    if(soTra>max) soTra=max;
+  } else {
+    if(!confirm('Trả lại / bỏ "'+ten+'" khỏi đơn?')) return;
+  }
+  const d=await jsonp({ action:"tra_mon", id, idx, soTra, pin:PIN });
+  if(!d || !d.ok){ alert((d&&d.error)||"Không trả được món"); return; }
+  toast("Đã trả món ✓");
+  await taiDon();
+}
+
+/* ===== Đánh dấu đã xử lý yêu cầu (xóa thông báo) ===== */
+async function xongYC(id, soTra){
+  const d=await jsonp({ action:"tra_mon", id, idx:0, soTra:soTra||1, pin:PIN });
+  if(!d || !d.ok){ toast((d&&d.error)||"Không xử lý được", true); return; }
+  seenReq.delete(id);
+  toast("Đã xử lý ✓");
+  await taiDon();
+}
+
+/* ===== Tính tiền ===== */
+let payBan="";
+function moTinhTien(ban){
+  ban = ban || banMo;
+  const b=banData[ban];
+  if(!b || b.tong<=0){ toast("Bàn này chưa có món để tính tiền", true); return; }
+  payBan=ban;
+  document.getElementById("mpTitle").textContent="Tính tiền — Bàn "+ban;
+  document.getElementById("mpTong").textContent=fmt(b.tong);
+  veQR(b.tong, "Ban "+ban);
+  dong("modalBan");
+  document.getElementById("modalPay").classList.add("show");
+}
+function veQR(amount, info){
+  const box=document.getElementById("mpQR");
+  const bk=CAUHINH&&CAUHINH.bank?CAUHINH.bank:null;
+  if(bk && bk.nh && bk.stk){
+    const url="https://img.vietqr.io/image/"+encodeURIComponent(bk.nh)+"-"+encodeURIComponent(bk.stk)
+      +"-compact2.png?amount="+Math.round(amount)+"&addInfo="+encodeURIComponent(info)+"&accountName="+encodeURIComponent(bk.ten||"");
+    box.innerHTML=`<img src="${url}" alt="VietQR" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'qr-note',textContent:'Không tải được mã QR — khách có thể trả tiền mặt.'}))">
+      <div class="qr-note">Nội dung CK: <b>${esc(info)}</b></div>`;
+  } else {
+    box.innerHTML=`<div class="qr-note">Quán chưa cài tài khoản VietQR. Khách trả tiền mặt rồi bấm “Đã nhận tiền”.</div>`;
+  }
+}
+
+async function dongBan(){
+  const ban=payBan, b=banData[ban];
+  if(!confirm("Đóng Bàn "+ban+"?\nTổng "+fmt(b?b.tong:0)+" sẽ được ghi vào doanh thu và bàn được dọn để đón khách mới.")) return;
+  const d=await jsonp({ action:"close_table", ban, pin:PIN });
+  if(!d || !d.ok){ alert((d&&d.error)||"Không đóng được bàn"); return; }
+  banMo=""; payBan="";
+  dong("modalPay");
+  // Mở ô gửi hóa đơn cho bàn vừa đóng
+  document.getElementById("mhSub").textContent="Bàn "+ban+" đã đóng — tổng "+fmt(d.tong||(b?b.tong:0))+". Nhập email nếu khách cần hóa đơn.";
+  document.getElementById("mhEmail").value="";
+  document.getElementById("mhNote").textContent="";
+  document.getElementById("modalHD").dataset.ban=ban;
+  document.getElementById("modalHD").classList.add("show");
+  toast("Đã đóng bàn "+ban+" ✓");
+  taiDon();
+}
+
+/* ===== Gửi hóa đơn ===== */
+async function guiHD(btn){
+  const ban=document.getElementById("modalHD").dataset.ban||"";
+  const email=document.getElementById("mhEmail").value.trim();
+  const note=document.getElementById("mhNote");
+  if(!email){ dong("modalHD"); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ note.style.color="#ff8787"; note.textContent="Email chưa đúng, kiểm tra lại."; return; }
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang gửi…";
+  note.style.color="var(--mo)"; note.textContent="";
+  const d=await jsonp({ action:"gui_hoadon", ban, email });
+  if(d.ok){ note.style.color="#7fe0a3"; note.textContent="Đã gửi hóa đơn tới "+email+" ✓"; setTimeout(()=>dong("modalHD"),1200); }
+  else { note.style.color="#ff8787"; note.textContent=d.error||"Gửi chưa được, thử lại."; }
+  btn.disabled=false; btn.textContent=cu;
+}
+</script>
+</body>
+</html>
