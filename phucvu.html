@@ -27,6 +27,17 @@
   .brand{font-weight:800; font-size:17px; color:var(--dong-sang)}
   .brand span{color:var(--chu); font-weight:600}
   .tools button{background:var(--the2); border:1px solid var(--vien); color:var(--chu); border-radius:10px; padding:8px 11px; font-size:13px; font-weight:600}
+  .vt-chip{font-size:11px; font-weight:600; color:var(--dong-sang); background:rgba(233,201,135,.12); border:1px solid #5a4a2a; padding:2px 9px; border-radius:20px; margin-left:6px}
+  .cc-strip{display:flex; align-items:center; justify-content:space-between; gap:12px; max-width:760px; margin:12px auto 0; padding:12px 14px; background:linear-gradient(180deg,#26201a,#1f1813); border:1px solid var(--vien); border-radius:14px}
+  .cc-strip.on{border-color:#2f5a3f; background:linear-gradient(180deg,#16291d,#13231a)}
+  .cc-left{min-width:0}
+  .cc-stt{font-size:14px; font-weight:800; color:var(--mo)}
+  .cc-strip.on .cc-stt{color:#7fe0a3}
+  .cc-sub{font-size:12.5px; color:var(--mo); margin-top:2px; font-variant-numeric:tabular-nums}
+  .cc-btn{flex-shrink:0; border:none; border-radius:11px; padding:11px 18px; font-size:14px; font-weight:800; color:#fff}
+  .cc-btn.vao{background:var(--xanh)}
+  .cc-btn.ra{background:#C0392B}
+  .cc-btn:disabled{opacity:.6}
 
   .wrap{max-width:760px; margin:0 auto; padding:14px 14px calc(28px + env(safe-area-inset-bottom))}
   .sec-h{font-size:14px; letter-spacing:.5px; color:var(--mo); margin:18px 4px 9px; font-weight:700; text-transform:uppercase}
@@ -98,19 +109,29 @@
 
 <div class="pinbox" id="pinbox">
   <div class="panel">
-    <h2>🧑‍🍳 Phục vụ</h2>
-    <p>Nhập mã PIN nhân viên để vào</p>
+    <h2>🧑‍🍳 Nhân viên</h2>
+    <p>Đăng nhập bằng mã PIN cá nhân của bạn</p>
     <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
     <div class="err" id="pinErr"></div>
-    <button onclick="vao()">Vào ca</button>
+    <button onclick="vao()">Đăng nhập</button>
   </div>
 </div>
 
 <div id="app" style="display:none">
   <header class="top">
-    <div class="brand">🧑‍🍳 Phục vụ · <span id="tenQuan">QUÁN VIỆT</span></div>
-    <div class="tools"><button id="btnChuong" onclick="toggleChuong()">🔔 Chuông: Bật</button></div>
+    <div class="brand">👋 <span id="nvTen">Nhân viên</span> <span class="vt-chip" id="nvVt"></span></div>
+    <div class="tools">
+      <button id="btnChuong" onclick="toggleChuong()">🔔</button>
+      <button onclick="dangXuat()">Đăng xuất</button>
+    </div>
   </header>
+  <div class="cc-strip" id="ccStrip">
+    <div class="cc-left">
+      <div class="cc-stt" id="ccStt">Chưa vào ca</div>
+      <div class="cc-sub" id="ccSub">Hôm nay: 0g 0p</div>
+    </div>
+    <button class="cc-btn vao" id="ccBtn" onclick="bamCa()">▶ Vào ca</button>
+  </div>
 
   <main class="wrap">
     <section>
@@ -128,7 +149,7 @@
       <div class="sec-h">🪑 Bàn đang phục vụ</div>
       <div id="banList" class="ban-grid"></div>
     </section>
-    <div class="foot">Trang phục vụ v1.0 · QUÁN VIỆT</div>
+    <div class="foot">Trang nhân viên v2.0 · phục vụ + chấm công · QUÁN VIỆT</div>
   </main>
 </div>
 
@@ -176,7 +197,6 @@
     <textarea id="scNoiDung" class="inp" rows="3" placeholder="Mô tả sự cố (vd: Hết gà rán, bếp ga số 2 không lên lửa…)"></textarea>
     <div style="display:flex;gap:8px;margin-top:8px">
       <input id="scBan" class="inp" style="margin-top:0;flex:1" inputmode="numeric" placeholder="Bàn (nếu có)">
-      <input id="scTen" class="inp" style="margin-top:0;flex:1" placeholder="Tên bạn">
     </div>
     <div class="hd-note" id="scNote"></div>
     <button class="btn" onclick="guiSuCo(this)" style="background:#c0392b">🚨 Gửi báo cáo</button>
@@ -190,6 +210,7 @@
 const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
 let PIN = "";
 let CAUHINH = null;
+let NV = null, dangLam = false, vaoLuc = null, tickTimer = null, ccPoll = null;
 
 async function jsonp(params){
   try{ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(params)}); return await r.json(); }
@@ -216,17 +237,37 @@ document.getElementById("pinInput").addEventListener("keydown", e=>{ if(e.key===
 async function vao(){
   const v=document.getElementById("pinInput").value.trim();
   if(!v){ document.getElementById("pinErr").textContent="Nhập mã PIN"; return; }
-  PIN=v;
+  document.getElementById("pinErr").textContent="Đang kiểm tra…";
+  const d=await jsonp({ action:"nv_login", pin:v });
+  if(!d.ok){ document.getElementById("pinErr").textContent=d.error||"PIN không đúng"; return; }
+  PIN=v; NV=d.nv;
+  try{ localStorage.setItem("emenu_nv_pin", v); }catch(e){}
   try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
-  document.getElementById("pinErr").textContent="Đang vào…";
-  // Thử 1 lệnh pin nhẹ để xác thực? -> dùng list (công khai) + sẽ kiểm pin khi thao tác. Vào thẳng.
+  vaoApp();
+}
+function vaoApp(){
   document.getElementById("pinbox").style.display="none";
   document.getElementById("app").style.display="block";
-  await taiCauHinh();
+  document.getElementById("nvTen").textContent=NV.ten||"Nhân viên";
+  document.getElementById("nvVt").textContent=NV.vaiTro||"";
+  taiCauHinh();
   taiDon(); lenLich();
   taiSuCo();
+  capNhatCa();
+  if(!ccPoll) ccPoll=setInterval(capNhatCa, 30000);
 }
-async function taiCauHinh(){ const d=await jsonp({action:"cau_hinh"}); if(d&&d.ok){ CAUHINH=d; if(d.tenQuan) document.getElementById("tenQuan").textContent=d.tenQuan; } }
+function dangXuat(){
+  try{ localStorage.removeItem("emenu_nv_pin"); }catch(e){}
+  if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+  if(ccPoll){ clearInterval(ccPoll); ccPoll=null; }
+  if(bepTimer){ clearInterval(bepTimer); bepTimer=null; }
+  PIN=""; NV=null; dangLam=false;
+  document.getElementById("app").style.display="none";
+  document.getElementById("pinbox").style.display="flex";
+  document.getElementById("pinInput").value="";
+  document.getElementById("pinErr").textContent="";
+}
+async function taiCauHinh(){ const d=await jsonp({action:"cau_hinh"}); if(d&&d.ok){ CAUHINH=d; } }
 
 /* ===== Tải đơn ===== */
 let dangTai=false, firstLoad=true;
@@ -474,7 +515,6 @@ function moBaoSuCo(){
   scLoaiChon="";
   document.getElementById("scNoiDung").value="";
   document.getElementById("scBan").value="";
-  document.getElementById("scTen").value=localStorage.getItem("emenu_pv_ten")||"";
   document.getElementById("scNote").textContent="";
   veLoai();
   document.getElementById("modalSuCo").classList.add("show");
@@ -490,8 +530,7 @@ async function guiSuCo(btn){
   if(!noiDung){ note.style.color="#ff8787"; note.textContent="Nhập mô tả sự cố."; return; }
   const loai=scLoaiChon||"Khác";
   const ban=document.getElementById("scBan").value.trim();
-  const ten=document.getElementById("scTen").value.trim();
-  if(ten) localStorage.setItem("emenu_pv_ten",ten);
+  const ten=(NV&&NV.ten)?NV.ten:"";
   btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang gửi…";
   const d=await jsonp({ action:"suco_them", loai, noiDung, ban, nguoi:ten, pin:PIN });
   btn.disabled=false; btn.textContent=cu;
@@ -527,6 +566,64 @@ async function xongSuCo(id){
   toast("Đã xử lý sự cố ✓");
   taiSuCo();
 }
+/* ===== CHẤM CÔNG (vào/ra ca) ===== */
+function hai(n){ return (n<10?"0":"")+n; }
+function gioPhut(h){ const m=Math.round((Number(h)||0)*60); return Math.floor(m/60)+"g "+(m%60)+"p"; }
+async function capNhatCa(){
+  if(!PIN) return;
+  const d=await jsonp({ action:"cc_trangthai", pin:PIN });
+  if(!d.ok) return;
+  dangLam=d.dangLam; vaoLuc=d.vaoLuc;
+  veCa(d.gioHomNay);
+}
+function veCa(gioHomNay){
+  const strip=document.getElementById("ccStrip"), stt=document.getElementById("ccStt"),
+        sub=document.getElementById("ccSub"), btn=document.getElementById("ccBtn");
+  const gp = gioPhut(gioHomNay==null?0:gioHomNay);
+  if(dangLam){
+    strip.classList.add("on");
+    stt.textContent="● Đang trong ca";
+    btn.textContent="■ Ra ca"; btn.className="cc-btn ra";
+    chayDongHo(gp);
+  } else {
+    strip.classList.remove("on");
+    stt.textContent="Chưa vào ca";
+    sub.textContent="Hôm nay: "+gp;
+    btn.textContent="▶ Vào ca"; btn.className="cc-btn vao";
+    if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+  }
+}
+function chayDongHo(gpHomNay){
+  if(tickTimer) clearInterval(tickTimer);
+  const sub=document.getElementById("ccSub");
+  const ve=()=>{
+    let s=Math.floor((Date.now()-vaoLuc)/1000); if(s<0)s=0;
+    sub.textContent="⏱ "+hai(Math.floor(s/3600))+":"+hai(Math.floor((s%3600)/60))+":"+hai(s%60)+" · hôm nay "+gpHomNay;
+  };
+  ve(); tickTimer=setInterval(ve,1000);
+}
+async function bamCa(){
+  const btn=document.getElementById("ccBtn"); btn.disabled=true;
+  if(!dangLam){
+    const d=await jsonp({ action:"cc_vao", pin:PIN });
+    if(d.ok){ toast("Đã vào ca ✓"); await capNhatCa(); } else toast(d.error||"Không vào ca được", true);
+  } else {
+    if(confirm("Kết thúc ca làm việc?")){
+      const d=await jsonp({ action:"cc_ra", pin:PIN });
+      if(d.ok){ toast("Đã ra ca · ca này "+gioPhut(d.soGio)+" ✓"); await capNhatCa(); } else toast(d.error||"Không ra ca được", true);
+    }
+  }
+  btn.disabled=false;
+}
+
+/* Tự đăng nhập nếu đã nhớ PIN */
+(async ()=>{
+  let saved=""; try{ saved=localStorage.getItem("emenu_nv_pin")||""; }catch(e){}
+  if(saved){
+    const d=await jsonp({ action:"nv_login", pin:saved });
+    if(d.ok){ PIN=saved; NV=d.nv; try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} vaoApp(); }
+  }
+})();
 </script>
 </body>
 </html>
