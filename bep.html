@@ -32,6 +32,29 @@
 
   /* Băng yêu cầu phục vụ */
   .sv-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 16px 0; }
+  .suco-bar { display:flex; flex-direction:column; gap:8px; padding:14px 16px 0; }
+  .suco-card { display:flex; align-items:center; gap:12px; background:linear-gradient(180deg,#5e1414,#3a0f0f); border:1px solid #a13; border-radius:12px; padding:11px 13px; }
+  .suco-card .ic { font-size:22px; }
+  .suco-card .info { flex:1; min-width:0; color:#ffe; }
+  .suco-card .info b { display:block; font-size:15px; }
+  .suco-card .info small { color:#f0b9b9; font-size:12.5px; }
+  .suco-card button { background:#2a1010; color:#ffd9d9; border:1px solid #a13; border-radius:9px; padding:9px 12px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0; }
+  .sc-modal { position:fixed; inset:0; background:rgba(10,6,5,.85); display:none; align-items:center; justify-content:center; z-index:120; padding:18px; }
+  .sc-modal.show { display:flex; }
+  .sc-modal .box { background:linear-gradient(180deg,#2E2620,#221B17); border:1px solid #4a3f33; border-radius:18px; padding:22px; width:420px; max-width:96%; }
+  .sc-modal h2 { color:var(--dong-sang); font-size:19px; margin-bottom:4px; }
+  .sc-modal p { color:#9c8d7d; font-size:13px; margin-bottom:12px; }
+  .sc-chips { display:flex; flex-wrap:wrap; gap:7px; margin-bottom:10px; }
+  .sc-chip { background:#3a302a; border:1px solid #4a3f33; color:#f3e9da; border-radius:20px; padding:8px 13px; font-size:13px; cursor:pointer; }
+  .sc-chip.on { background:#c0392b; border-color:#c0392b; color:#fff; font-weight:700; }
+  .sc-modal textarea, .sc-modal input { width:100%; padding:11px; font-size:14px; border-radius:10px; border:1px solid #4a3f33; background:#1b1511; color:#f3e9da; font-family:inherit; }
+  .sc-modal textarea { resize:vertical; line-height:1.4; margin-bottom:8px; }
+  .sc-row { display:flex; gap:8px; margin-bottom:8px; }
+  .sc-note { font-size:13px; min-height:18px; margin-bottom:6px; }
+  .sc-modal .send { width:100%; padding:13px; border:none; border-radius:11px; background:#c0392b; color:#fff; font-weight:800; font-size:15px; cursor:pointer; margin-top:4px; }
+  .sc-modal .cancel { width:100%; padding:11px; border:1px solid #4a3f33; border-radius:11px; background:transparent; color:#9c8d7d; font-weight:600; cursor:pointer; margin-top:8px; }
+  .bep-toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:11px 18px; border-radius:30px; font-size:14px; opacity:0; transition:.25s; z-index:130; pointer-events:none; }
+  .bep-toast.show { opacity:.95; transform:translateX(-50%) translateY(0); }
   .sv-card { background: linear-gradient(180deg,#5a4616,#42330f); border: 1px solid #C8A24B; border-radius: 12px;
     padding: 10px 14px; display: flex; align-items: center; gap: 12px; box-shadow:0 4px 14px rgba(0,0,0,.3); }
   .sv-card .txt { font-weight: 800; color: #ffe08a; }
@@ -110,9 +133,11 @@
       <span class="dot-live"></span><span style="font-size:12px;color:#9c8d7d">Trực tuyến</span>
       <div class="doanhthu">💰 Hôm nay: <b id="dtHomNay">0đ</b></div>
       <button class="reset" id="btnChuong" onclick="toggleChuong()">🔔 Chuông: Bật</button>
+      <button class="reset" style="background:#7A1A1A;border-color:#a13;color:#fff" onclick="moBaoSuCo()">🚨 Báo sự cố</button>
       <button class="reset" onclick="xoaHet()">Xóa tất cả (cuối ngày)</button>
     </div>
   </header>
+  <div class="suco-bar" id="suCoBar"></div>
   <div class="sv-bar" id="svBar"></div>
   <div class="ban-bar">
     <h3>🍽️ BÀN ĐANG PHỤC VỤ — bấm để tính tiền &amp; dọn bàn</h3>
@@ -130,6 +155,23 @@
     <button onclick="vaoBep()">Vào bếp</button>
   </div>
 </div>
+
+<div class="sc-modal" id="scModal">
+  <div class="box">
+    <h2>🚨 Báo sự cố</h2>
+    <p>Mọi nhân viên và chủ quán sẽ thấy ngay.</p>
+    <div class="sc-chips" id="scChips"></div>
+    <textarea id="scNoiDung" rows="3" placeholder="Mô tả sự cố (vd: Hết gà rán, bếp ga số 2 không lên lửa…)"></textarea>
+    <div class="sc-row">
+      <input id="scBan" inputmode="numeric" placeholder="Bàn (nếu có)">
+      <input id="scTen" placeholder="Tên bạn">
+    </div>
+    <div class="sc-note" id="scNote"></div>
+    <button class="send" onclick="guiSuCo(this)">🚨 Gửi báo cáo</button>
+    <button class="cancel" onclick="dongSC()">Hủy</button>
+  </div>
+</div>
+<div class="bep-toast" id="bepToast"></div>
 
 <script>
 const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
@@ -176,13 +218,13 @@ function vaoBep() {
   try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
   document.getElementById("pinbox").style.display = "none";
   setTimeout(ting, 300); // kêu thử 1 tiếng để xác nhận loa đã bật
-  taiDon().then(lenLich);
+  taiDon().then(()=>{ taiSuCo(); lenLich(); });
 }
 document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") vaoBep(); });
 // Làm mới đều, tự né gọi chồng; làm mới ngay khi quay lại màn hình
 function lenLich() {
   clearTimeout(window._timer);
-  window._timer = setTimeout(async () => { await taiDon(); lenLich(); }, 2500);
+  window._timer = setTimeout(async () => { await taiDon(); taiSuCo(); lenLich(); }, 2500);
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden && PIN) { taiDon(); lenLich(); } });
 window.addEventListener("focus", () => { if (PIN) taiDon(); });
@@ -345,6 +387,65 @@ async function xoaHet() {
     if (!d.ok) { alert(d.error || "Không xóa được"); return; }
     seen = new Set(); taiDon();
   } catch(e){ alert("Lỗi mạng: " + e); }
+}
+/* ===== SỰ CỐ (đồng bộ mọi màn hình) ===== */
+const escSC = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function bepToast(m){ const t=document.getElementById("bepToast"); t.textContent=m; t.className="bep-toast show"; setTimeout(()=>t.className="bep-toast",2200); }
+const SUCO_LOAI=["Hết món","Thiếu nguyên liệu","Hỏng thiết bị","Khách phàn nàn","Sự cố thanh toán","Khác"];
+let scLoaiChon="", sucoData=[], seenSuCo=new Set(), firstSuCo=true;
+function moBaoSuCo(){
+  scLoaiChon="";
+  document.getElementById("scNoiDung").value="";
+  document.getElementById("scBan").value="";
+  document.getElementById("scTen").value=localStorage.getItem("emenu_bep_ten")||"";
+  document.getElementById("scNote").textContent="";
+  veSCChips();
+  document.getElementById("scModal").classList.add("show");
+}
+function dongSC(){ document.getElementById("scModal").classList.remove("show"); }
+function veSCChips(){
+  document.getElementById("scChips").innerHTML=SUCO_LOAI.map(l=>`<button class="sc-chip${scLoaiChon===l?' on':''}" onclick="chonSCLoai('${l}')">${escSC(l)}</button>`).join("");
+}
+function chonSCLoai(l){ scLoaiChon=l; veSCChips(); }
+async function guiSuCo(btn){
+  const noiDung=document.getElementById("scNoiDung").value.trim();
+  const note=document.getElementById("scNote");
+  if(!noiDung){ note.style.color="#ff8787"; note.textContent="Nhập mô tả sự cố."; return; }
+  const ten=document.getElementById("scTen").value.trim();
+  if(ten) localStorage.setItem("emenu_bep_ten",ten);
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang gửi…";
+  const d=await jsonp({ action:"suco_them", loai:scLoaiChon||"Khác", noiDung, ban:document.getElementById("scBan").value.trim(), nguoi:ten, pin:PIN });
+  btn.disabled=false; btn.textContent=cu;
+  if(d && d.ok){ if(d.id) seenSuCo.add(Number(d.id)); dongSC(); bepToast("Đã báo sự cố ✓"); taiSuCo(); }
+  else { note.style.color="#ff8787"; note.textContent=(d&&d.error)||"Gửi chưa được."; }
+}
+async function taiSuCo(){
+  const d=await jsonp({ action:"suco_list" });
+  if(d && d.ok){
+    const list=d.list||[];
+    const coMoi=list.some(s=>!seenSuCo.has(s.id));
+    if(!firstSuCo && coMoi) ting();
+    seenSuCo=new Set(list.map(s=>s.id));
+    firstSuCo=false;
+    sucoData=list; veSuCo();
+  }
+}
+function veSuCo(){
+  const box=document.getElementById("suCoBar");
+  if(!sucoData.length){ box.innerHTML=""; return; }
+  box.innerHTML=sucoData.map(s=>`<div class="suco-card">
+    <div class="ic">🚨</div>
+    <div class="info"><b>${escSC(s.loai)}${s.ban?(' · Bàn '+escSC(s.ban)):''}</b><small>${escSC(s.noiDung)}${s.nguoi?(' — '+escSC(s.nguoi)):''} · ${escSC(s.gio)}</small></div>
+    <button onclick="xongSuCo('${s.id}')">Đã xử lý</button>
+  </div>`).join("");
+}
+async function xongSuCo(id){
+  if(!confirm("Đánh dấu sự cố này đã xử lý xong?")) return;
+  const d=await jsonp({ action:"suco_xong", id, pin:PIN });
+  if(!d || !d.ok){ bepToast((d&&d.error)||"Không xử lý được"); return; }
+  seenSuCo.delete(Number(id));
+  bepToast("Đã xử lý ✓");
+  taiSuCo();
 }
 </script>
 </body>

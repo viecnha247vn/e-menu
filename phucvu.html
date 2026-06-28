@@ -48,6 +48,12 @@
   .tb .acts button{border:none; border-radius:9px; padding:9px 11px; font-size:13px; font-weight:700}
   .b-ok{background:#42352a; color:#e9d9c5}
   .b-bill{background:var(--xanh); color:#fff}
+  .tb.suco{background:linear-gradient(180deg,#3a1414,#2e0f0f); border-color:#8a2525}
+  .b-suco{background:#c0392b; color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:12.5px; font-weight:800}
+  .loai-grid{display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 10px}
+  .loai-chip{background:#2a221c; border:1px solid var(--vien); color:var(--chu); border-radius:20px; padding:8px 13px; font-size:13px}
+  .loai-chip.on{background:#c0392b; border-color:#c0392b; color:#fff; font-weight:700}
+  textarea.inp{resize:vertical; font-family:inherit; line-height:1.4}
   .b-bung{background:#b5651d; color:#fff}
 
   /* Bàn */
@@ -108,6 +114,13 @@
 
   <main class="wrap">
     <section>
+      <div class="sec-h" style="display:flex;justify-content:space-between;align-items:center">
+        <span>🚨 Sự cố</span>
+        <button class="b-suco" onclick="moBaoSuCo()">＋ Báo sự cố</button>
+      </div>
+      <div id="suCoList" class="tb-list"></div>
+    </section>
+    <section>
       <div class="sec-h">🔔 Thông báo</div>
       <div id="thongBao" class="tb-list"></div>
     </section>
@@ -155,6 +168,22 @@
   </div>
 </div>
 
+<div class="modal" id="modalSuCo">
+  <div class="sheet">
+    <h3>🚨 Báo sự cố</h3>
+    <p class="sub">Mọi nhân viên và chủ quán sẽ thấy ngay.</p>
+    <div class="loai-grid" id="scLoai"></div>
+    <textarea id="scNoiDung" class="inp" rows="3" placeholder="Mô tả sự cố (vd: Hết gà rán, bếp ga số 2 không lên lửa…)"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <input id="scBan" class="inp" style="margin-top:0;flex:1" inputmode="numeric" placeholder="Bàn (nếu có)">
+      <input id="scTen" class="inp" style="margin-top:0;flex:1" placeholder="Tên bạn">
+    </div>
+    <div class="hd-note" id="scNote"></div>
+    <button class="btn" onclick="guiSuCo(this)" style="background:#c0392b">🚨 Gửi báo cáo</button>
+    <button class="btn ghost" onclick="dong('modalSuCo')">Hủy</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -195,6 +224,7 @@ async function vao(){
   document.getElementById("app").style.display="block";
   await taiCauHinh();
   taiDon(); lenLich();
+  taiSuCo();
 }
 async function taiCauHinh(){ const d=await jsonp({action:"cau_hinh"}); if(d&&d.ok){ CAUHINH=d; if(d.tenQuan) document.getElementById("tenQuan").textContent=d.tenQuan; } }
 
@@ -272,6 +302,7 @@ async function taiDon(){
 
       firstLoad=false;
       veThongBao(); veBan();
+      taiSuCo();
       if(banMo && banData[banMo]) veChiTietBan(banMo);   // làm mới modal đang mở
       else if(banMo && !banData[banMo]){ banMo=""; dong("modalBan"); }
     }
@@ -434,6 +465,67 @@ async function guiHD(btn){
   if(d.ok){ note.style.color="#7fe0a3"; note.textContent="Đã gửi hóa đơn tới "+email+" ✓"; setTimeout(()=>dong("modalHD"),1200); }
   else { note.style.color="#ff8787"; note.textContent=d.error||"Gửi chưa được, thử lại."; }
   btn.disabled=false; btn.textContent=cu;
+}
+/* ===== SỰ CỐ (mọi màn hình đều thấy) ===== */
+const SUCO_LOAI = ["Hết món","Thiếu nguyên liệu","Hỏng thiết bị","Khách phàn nàn","Sự cố thanh toán","Khác"];
+let scLoaiChon="", sucoData=[], seenSuCo=new Set(), firstSuCo=true;
+
+function moBaoSuCo(){
+  scLoaiChon="";
+  document.getElementById("scNoiDung").value="";
+  document.getElementById("scBan").value="";
+  document.getElementById("scTen").value=localStorage.getItem("emenu_pv_ten")||"";
+  document.getElementById("scNote").textContent="";
+  veLoai();
+  document.getElementById("modalSuCo").classList.add("show");
+}
+function veLoai(){
+  document.getElementById("scLoai").innerHTML = SUCO_LOAI.map(l=>
+    `<button class="loai-chip${scLoaiChon===l?' on':''}" onclick="chonLoai('${l}')">${esc(l)}</button>`).join("");
+}
+function chonLoai(l){ scLoaiChon=l; veLoai(); }
+async function guiSuCo(btn){
+  const noiDung=document.getElementById("scNoiDung").value.trim();
+  const note=document.getElementById("scNote");
+  if(!noiDung){ note.style.color="#ff8787"; note.textContent="Nhập mô tả sự cố."; return; }
+  const loai=scLoaiChon||"Khác";
+  const ban=document.getElementById("scBan").value.trim();
+  const ten=document.getElementById("scTen").value.trim();
+  if(ten) localStorage.setItem("emenu_pv_ten",ten);
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang gửi…";
+  const d=await jsonp({ action:"suco_them", loai, noiDung, ban, nguoi:ten, pin:PIN });
+  btn.disabled=false; btn.textContent=cu;
+  if(d && d.ok){ if(d.id) seenSuCo.add(Number(d.id)); dong("modalSuCo"); toast("Đã báo sự cố — mọi người đã thấy ✓"); taiSuCo(); }
+  else { note.style.color="#ff8787"; note.textContent=(d&&d.error)||"Gửi chưa được."; }
+}
+async function taiSuCo(){
+  const d=await jsonp({ action:"suco_list" });
+  if(d && d.ok){
+    const list=d.list||[];
+    const coMoi=list.some(s=>!seenSuCo.has(s.id));
+    if(!firstSuCo && coMoi) ting();
+    seenSuCo=new Set(list.map(s=>s.id));
+    firstSuCo=false;
+    sucoData=list; veSuCo();
+  }
+}
+function veSuCo(){
+  const box=document.getElementById("suCoList");
+  if(!sucoData.length){ box.innerHTML=''; return; }
+  box.innerHTML=sucoData.map(s=>`
+    <div class="tb suco">
+      <div class="ic">🚨</div>
+      <div class="info"><b>${esc(s.loai)}${s.ban?(' · Bàn '+esc(s.ban)):''}</b><small>${esc(s.noiDung)}${s.nguoi?(' — '+esc(s.nguoi)):''} · ${esc(s.gio)}</small></div>
+      <div class="acts"><button class="b-ok" onclick="xongSuCo('${s.id}')">Đã xử lý</button></div>
+    </div>`).join("");
+}
+async function xongSuCo(id){
+  if(!confirm("Đánh dấu sự cố này đã xử lý xong?")) return;
+  const d=await jsonp({ action:"suco_xong", id, pin:PIN });
+  if(!d || !d.ok){ toast((d&&d.error)||"Không xử lý được", true); return; }
+  seenSuCo.delete(Number(id));
+  toast("Đã xử lý sự cố ✓");
+  taiSuCo();
 }
 </script>
 </body>
