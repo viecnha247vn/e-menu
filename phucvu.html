@@ -37,6 +37,8 @@
   .tb-empty{color:var(--mo); font-size:14px; padding:14px; text-align:center; background:var(--the); border-radius:12px; border:1px dashed var(--vien)}
   .tb{display:flex; align-items:center; gap:12px; background:linear-gradient(180deg,#3a2a16,#332512); border:1px solid #5a4220; border-radius:13px; padding:12px 13px; animation:pop .25s}
   .tb.bill{background:linear-gradient(180deg,#1f3326,#1a2c20); border-color:#2f5a3f}
+  .tb.done{background:linear-gradient(180deg,#3a2412,#33200f); border-color:#7a4a1e}
+  .tb.new{background:linear-gradient(180deg,#16283a,#132235); border-color:#2f4a6e}
   @keyframes pop{from{transform:scale(.97); opacity:.4} to{transform:scale(1); opacity:1}}
   .tb .ic{font-size:24px}
   .tb .info{flex:1; min-width:0}
@@ -46,6 +48,7 @@
   .tb .acts button{border:none; border-radius:9px; padding:9px 11px; font-size:13px; font-weight:700}
   .b-ok{background:#42352a; color:#e9d9c5}
   .b-bill{background:var(--xanh); color:#fff}
+  .b-bung{background:#b5651d; color:#fff}
 
   /* Bàn */
   .ban-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:11px}
@@ -105,7 +108,7 @@
 
   <main class="wrap">
     <section>
-      <div class="sec-h">🔔 Thông báo từ khách</div>
+      <div class="sec-h">🔔 Thông báo</div>
       <div id="thongBao" class="tb-list"></div>
     </section>
     <section>
@@ -197,10 +200,14 @@ async function taiCauHinh(){ const d=await jsonp({action:"cau_hinh"}); if(d&&d.o
 
 /* ===== Tải đơn ===== */
 let dangTai=false, firstLoad=true;
-let seenReq=new Set();
-let banData={};        // { "05": {ban, tong, lines:[{id,idx,ten,gia,soLuong}], coXong} }
-let reqData=[];        // [{id, ban, loai, ten, note, soTra}]
-let banMo="";          // bàn đang mở modal chi tiết
+let seenNoti=new Set();   // key thông báo đã thấy (để kêu chuông khi có cái mới)
+let banData={};           // { "05": {ban, tong, lines:[{id,idx,ten,gia,soLuong}], coXong} }
+let notiData=[];          // thông báo: yêu cầu khách + đơn mới + món xong
+let banMo="";             // bàn đang mở modal chi tiết
+let daBung=new Set();     // id đơn đã bưng ra (lưu trên máy này)
+let daRoMoi=new Set();    // id đơn mới đã bấm "Đã rõ" (trong phiên)
+try{ daBung=new Set(JSON.parse(localStorage.getItem("emenu_pv_bung")||"[]")); }catch(e){}
+function luuBung(){ try{ localStorage.setItem("emenu_pv_bung", JSON.stringify([...daBung])); }catch(e){} }
 
 const laSV = o => o.items.every(i => Number(i.gia) === 0);
 
@@ -216,35 +223,52 @@ async function taiDon(){
     if(d && d.ok){
       const orders=(d.orders||[]).sort((a,b)=>a.luc-b.luc);
 
-      // --- Yêu cầu phục vụ (đơn toàn món giá 0) ---
-      const reqs=[];
-      orders.forEach(o=>{
-        if(!laSV(o) || !o.items.length) return;
-        const ten=o.items[0].ten||"Yêu cầu";
-        const laBill=/tính tiền/i.test(ten);
-        reqs.push({ id:o.id, ban:o.ban, ten, note:o.note||"", laBill, soTra:Number(o.items[0].soLuong)||1 });
-      });
-      // chuông khi có yêu cầu mới
-      const coMoi=reqs.some(r=>!seenReq.has(r.id));
-      if(!firstLoad && coMoi) ting();
-      reqs.forEach(r=>seenReq.add(r.id));
-      [...seenReq].forEach(id=>{ if(!reqs.find(r=>r.id===id)) seenReq.delete(id); });
-      reqData=reqs;
-
-      // --- Bàn (đơn có món tính tiền) ---
+      // --- Gom bàn + dựng thông báo ---
       const map={};
+      const notis=[];
       orders.forEach(o=>{
-        if(laSV(o)) return;
+        if(!o.items || !o.items.length) return;
+        if(laSV(o)){
+          // Yêu cầu của khách (đơn toàn món giá 0)
+          const ten=o.items[0].ten||"Yêu cầu";
+          const laBill=/tính tiền/i.test(ten);
+          notis.push({ key:"yc:"+o.id, type:laBill?"bill":"goi", prio:laBill?2:1, ban:o.ban, id:o.id, note:o.note||"", soTra:Number(o.items[0].soLuong)||1 });
+          return;
+        }
+        // Đơn có món tính tiền → vào bàn
         const ban=o.ban;
         if(!map[ban]) map[ban]={ ban, tong:0, lines:[], coXong:false };
-        if(o.trangThai==="xong") map[ban].coXong=true;
+        const tt=[];
         o.items.forEach((it,idx)=>{
           if(Number(it.gia)<=0) return;
           map[ban].tong += it.gia*it.soLuong;
           map[ban].lines.push({ id:o.id, idx, ten:it.ten, gia:it.gia, soLuong:it.soLuong });
+          tt.push(it.soLuong+"× "+it.ten);
         });
+        if(!tt.length) return;
+        const sub=tt.join(", ");
+        if(o.trangThai==="xong" && !daBung.has(o.id)){
+          map[ban].coXong=true;
+          notis.push({ key:"xong:"+o.id, type:"xong", prio:0, ban, id:o.id, sub });
+        } else if(o.trangThai==="moi" && !daRoMoi.has(o.id)){
+          notis.push({ key:"moi:"+o.id, type:"moi", prio:3, ban, id:o.id, sub });
+        }
       });
+      notis.sort((a,b)=> a.prio-b.prio || String(a.ban).localeCompare(String(b.ban),undefined,{numeric:true}));
       banData=map;
+
+      // chuông khi có thông báo mới (đơn mới / món xong / yêu cầu)
+      const coMoi=notis.some(n=>!seenNoti.has(n.key));
+      if(!firstLoad && coMoi) ting();
+      seenNoti=new Set(notis.map(n=>n.key));
+      notiData=notis;
+
+      // dọn id đã bưng/đã rõ không còn trong đơn
+      const idsConLai=new Set(orders.map(o=>o.id));
+      let thay=false;
+      [...daBung].forEach(id=>{ if(!idsConLai.has(id)){ daBung.delete(id); thay=true; } });
+      [...daRoMoi].forEach(id=>{ if(!idsConLai.has(id)) daRoMoi.delete(id); });
+      if(thay) luuBung();
 
       firstLoad=false;
       veThongBao(); veBan();
@@ -257,14 +281,28 @@ async function taiDon(){
 
 function veThongBao(){
   const box=document.getElementById("thongBao");
-  if(!reqData.length){ box.innerHTML='<div class="tb-empty">Chưa có yêu cầu nào từ khách.</div>'; return; }
-  box.innerHTML=reqData.map(r=>{
-    const sub = r.note ? esc(r.note) : (r.laBill?"Khách xin tính tiền":"Khách cần hỗ trợ");
-    const billBtn = r.laBill ? `<button class="b-bill" onclick="moTinhTien('${esc(r.ban)}')">Tính tiền</button>` : "";
-    return `<div class="tb ${r.laBill?'bill':''}">
-      <div class="ic">${r.laBill?'🧾':'📣'}</div>
-      <div class="info"><b>Bàn ${esc(r.ban)} — ${esc(r.ten.replace(/^[^\wÀ-ỹ]+\s*/,''))||'Yêu cầu'}</b><small>${sub}</small></div>
-      <div class="acts">${billBtn}<button class="b-ok" onclick="xongYC('${r.id}',${r.soTra})">Đã xử lý</button></div>
+  if(!notiData.length){ box.innerHTML='<div class="tb-empty">Chưa có thông báo nào.</div>'; return; }
+  box.innerHTML=notiData.map(n=>{
+    if(n.type==="xong"){
+      return `<div class="tb done">
+        <div class="ic">🍽️</div>
+        <div class="info"><b>Bàn ${esc(n.ban)} — Món đã xong, bưng ra</b><small>${esc(n.sub)}</small></div>
+        <div class="acts"><button class="b-bung" onclick="bung('${n.id}')">Đã bưng</button></div>
+      </div>`;
+    }
+    if(n.type==="moi"){
+      return `<div class="tb new">
+        <div class="ic">🆕</div>
+        <div class="info"><b>Bàn ${esc(n.ban)} — Vừa gọi món</b><small>${esc(n.sub)}</small></div>
+        <div class="acts"><button class="b-ok" onclick="roMoi('${n.id}')">Đã rõ</button></div>
+      </div>`;
+    }
+    const sub = n.note ? esc(n.note) : (n.type==="bill"?"Khách xin tính tiền":"Khách cần hỗ trợ");
+    const billBtn = n.type==="bill" ? `<button class="b-bill" onclick="moTinhTien('${esc(n.ban)}')">Tính tiền</button>` : "";
+    return `<div class="tb ${n.type==="bill"?'bill':''}">
+      <div class="ic">${n.type==="bill"?'🧾':'📣'}</div>
+      <div class="info"><b>Bàn ${esc(n.ban)} — ${n.type==="bill"?'Xin tính tiền':'Gọi nhân viên'}</b><small>${sub}</small></div>
+      <div class="acts">${billBtn}<button class="b-ok" onclick="xongYC('${n.id}',${n.soTra})">Đã xử lý</button></div>
     </div>`;
   }).join("");
 }
@@ -319,9 +357,25 @@ async function traMon(id, idx, ten, max){
 async function xongYC(id, soTra){
   const d=await jsonp({ action:"tra_mon", id, idx:0, soTra:soTra||1, pin:PIN });
   if(!d || !d.ok){ toast((d&&d.error)||"Không xử lý được", true); return; }
-  seenReq.delete(id);
+  seenNoti.delete("yc:"+id);
   toast("Đã xử lý ✓");
   await taiDon();
+}
+
+/* Đã bưng món ra (xóa thông báo, lưu trên máy này) */
+function bung(id){
+  daBung.add(id); luuBung();
+  const n=notiData.find(x=>x.id===id && x.type==="xong");
+  notiData=notiData.filter(x=>!(x.id===id && x.type==="xong"));
+  if(n && banData[n.ban]) banData[n.ban].coXong = notiData.some(x=>x.type==="xong" && x.ban===n.ban);
+  veThongBao(); veBan();
+  toast("Đã bưng ra ✓");
+}
+/* Đã rõ đơn mới (ẩn trong phiên) */
+function roMoi(id){
+  daRoMoi.add(id);
+  notiData=notiData.filter(x=>!(x.id===id && x.type==="moi"));
+  veThongBao();
 }
 
 /* ===== Tính tiền ===== */
