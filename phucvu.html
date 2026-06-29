@@ -11,14 +11,25 @@
   body{margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--nen); color:var(--chu)}
   button{font:inherit; cursor:pointer}
 
-  /* PIN */
+  /* Đăng nhập nhân viên */
   .pinbox{position:fixed; inset:0; background:rgba(10,6,5,.92); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px}
-  .pinbox .panel{background:linear-gradient(180deg,#2E2620,#221B17); padding:30px; border-radius:18px; width:320px; text-align:center; border:1px solid var(--vien); box-shadow:0 20px 50px rgba(0,0,0,.4)}
-  .pinbox h2{margin:0 0 6px; font-size:21px; color:var(--dong-sang)}
-  .pinbox p{font-size:13px; color:var(--mo); margin:0 0 16px}
-  .pinbox input{width:100%; padding:12px; font-size:22px; text-align:center; letter-spacing:6px; border-radius:11px; border:1px solid var(--vien); background:#1b1511; color:var(--chu)}
-  .pinbox button{width:100%; margin-top:14px; padding:13px; color:#fff; border:none; border-radius:11px; font-weight:700; font-size:15px; background:var(--do)}
-  .pinbox .err{color:#ff8787; font-size:13px; min-height:18px; margin-top:8px}
+  .pinbox .panel{background:linear-gradient(180deg,#2E2620,#221B17); padding:30px 26px 24px; border-radius:20px; width:340px; max-width:100%; text-align:center; border:1px solid var(--vien); box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  .pinbox .ava{width:56px; height:56px; margin:0 auto 14px; border-radius:16px; display:grid; place-items:center; font-size:28px; background:linear-gradient(135deg,#3a2c20,#2a201a); border:1px solid var(--vien)}
+  .pinbox h2{margin:0 0 6px; font-size:20px; color:var(--dong-sang)}
+  .pinbox p{font-size:13px; color:var(--mo); margin:0 0 20px; line-height:1.5}
+  .pinbox .fld{text-align:left; margin-bottom:12px}
+  .pinbox label{display:block; font-size:12px; font-weight:600; color:var(--mo); margin:0 0 6px}
+  .pinbox input{width:100%; border-radius:12px; border:1px solid var(--vien); background:#1b1511; color:var(--chu); outline:none; transition:border-color .15s, box-shadow .15s}
+  .pinbox input:focus{border-color:var(--vang); box-shadow:0 0 0 3px rgba(217,164,65,.18)}
+  .pinbox input::placeholder{color:#6d5e51; letter-spacing:normal; font-weight:400}
+  .pinbox input.email{padding:13px 14px; font-size:15px; text-align:left; letter-spacing:normal}
+  .pinbox input.pin{padding:13px 14px; font-size:19px; text-align:center; letter-spacing:6px; text-indent:6px; font-weight:700}
+  .pinbox .err{color:#ff8787; font-size:13px; min-height:18px; margin:2px 0 0}
+  .pinbox button.go{width:100%; margin-top:14px; padding:14px; color:#fff; border:none; border-radius:12px; font-weight:700; font-size:15.5px; background:linear-gradient(135deg,var(--do),#a8311f); box-shadow:0 8px 22px rgba(192,57,43,.3); transition:transform .15s, box-shadow .15s}
+  .pinbox button.go:hover{transform:translateY(-1px); box-shadow:0 12px 28px rgba(192,57,43,.38)}
+  .pinbox button.go:active{transform:translateY(0)}
+  .pinbox button.link{background:transparent; color:var(--mo); border:none; box-shadow:none; font-size:13px; margin-top:10px; padding:6px; text-decoration:underline; text-underline-offset:2px}
+  .pinbox button.link:hover{color:var(--dong-sang)}
 
   /* Header */
   .top{position:sticky; top:0; z-index:30; display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -120,13 +131,20 @@
 
 <div class="pinbox" id="pinbox">
   <div class="panel">
-    <h2>🧑‍🍳 Nhân viên</h2>
-    <p>Đăng nhập bằng <b>email</b> và <b>mã PIN</b> (PIN ban đầu: 123456)</p>
-    <input id="emailInput" type="email" inputmode="email" autocapitalize="off" placeholder="email của bạn" autofocus>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="Mã PIN">
+    <div class="ava">🧑‍🍳</div>
+    <h2>Đăng nhập nhân viên</h2>
+    <p>Dùng <b>email</b> và <b>mã PIN</b> được cấp · PIN ban đầu: 123456</p>
+    <div class="fld">
+      <label for="emailInput">Email</label>
+      <input id="emailInput" class="email" type="email" inputmode="email" autocapitalize="off" autocomplete="username" placeholder="email@cuaban.com" autofocus>
+    </div>
+    <div class="fld">
+      <label for="pinInput">Mã PIN</label>
+      <input id="pinInput" class="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="••••••">
+    </div>
     <div class="err" id="pinErr"></div>
-    <button onclick="vao()">Đăng nhập</button>
-    <button onclick="quenPin()" style="background:transparent;color:#caa;box-shadow:none;font-size:13px;margin-top:6px">Quên PIN?</button>
+    <button class="go" onclick="vao()">Đăng nhập</button>
+    <button class="link" onclick="quenPin()">Quên PIN?</button>
   </div>
 </div>
 
