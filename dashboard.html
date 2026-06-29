@@ -454,6 +454,12 @@
       </div>
       <div id="bangLuong"><div class="muted">Đang tải…</div></div>
     </div>
+    <div class="card">
+      <h3>💰 Duyệt ứng / lấy lương</h3>
+      <div id="luongChoDuyet"></div>
+      <div style="font-size:12.5px;color:#8A7F72;font-weight:700;margin:14px 0 6px">LỊCH SỬ</div>
+      <div id="luongLichSu"><div class="muted">Đang tải…</div></div>
+    </div>
   </section>
 
 </div>
@@ -484,13 +490,15 @@
     <input type="hidden" id="nvId">
     <label class="nv-lbl">Tên nhân viên</label>
     <input class="nv-inp" id="nvF_ten" placeholder="VD: Nguyễn Văn A">
-    <label class="nv-lbl">Mã PIN cá nhân (4–8 chữ số)</label>
-    <input class="nv-inp" id="nvF_pin" inputmode="numeric" maxlength="8" placeholder="VD: 2468">
+    <label class="nv-lbl">Email đăng nhập</label>
+    <input class="nv-inp" id="nvF_email" type="email" autocapitalize="off" placeholder="vd: a.nguyen@gmail.com">
     <div style="display:flex;gap:10px">
       <div style="flex:1"><label class="nv-lbl">Lương / giờ (đ)</label><input class="nv-inp" id="nvF_luong" inputmode="numeric" placeholder="VD: 30000"></div>
       <div style="flex:1"><label class="nv-lbl">Vai trò</label><input class="nv-inp" id="nvF_vaitro" placeholder="Phục vụ / Bếp…"></div>
     </div>
+    <label class="nv-lbl" id="nvF_pinLbl" style="display:none"><input type="checkbox" id="nvF_resetPin"> Đặt lại PIN về <b>123456</b></label>
     <div class="nv-note" id="nvFormNote"></div>
+    <div id="nvF_hint" style="font-size:12.5px;color:#8A7F72;margin-bottom:8px">PIN ban đầu của nhân viên mới là <b>123456</b>. Nhân viên tự đổi sau khi đăng nhập.</div>
     <button class="btn" onclick="luuNV(this)">💾 Lưu</button>
     <button class="btn ghost" style="margin-top:8px" onclick="dongNV()">Hủy</button>
   </div>
@@ -1015,7 +1023,7 @@ async function xongSuCoDash(id){
 }
 /* ===== NHÂN SỰ & BẢNG LƯƠNG ===== */
 let nvDanhSach=[];
-async function taiNhanSu(){ await taiDsNV(); chonKyLuong(luongKyHienTai); taiGoiActive(); }
+async function taiNhanSu(){ await taiDsNV(); chonKyLuong(luongKyHienTai); taiGoiActive(); taiYeuCauLuong(); }
 async function taiDsNV(){
   const box=document.getElementById("nvList");
   const d=await jsonp({ action:"nv_list", adminPass:PASS });
@@ -1026,7 +1034,7 @@ async function taiDsNV(){
   if(!nvDanhSach.length){ box.innerHTML='<div class="muted">Chưa có nhân viên. Bấm “Thêm nhân viên”.</div>'; return; }
   box.innerHTML=nvDanhSach.map(n=>`<div class="nv-row">
     <div class="nv-i"><b>${esc(n.ten)}</b> ${n.active?'':'<span class="nv-pill" style="background:#eee;color:#999">đã khóa</span>'}
-      <small>PIN ${esc(n.pin)} · ${fmt(n.luong)}/giờ${n.vaiTro?(' · '+esc(n.vaiTro)):''}</small></div>
+      <small>${esc(n.email||'(chưa có email)')} · ${fmt(n.luong)}/giờ${n.vaiTro?(' · '+esc(n.vaiTro)):''}</small></div>
     <button class="nv-act" onclick='suaNV(${JSON.stringify(n)})'>Sửa</button>
     <button class="nv-act" style="color:#C0392B" onclick="xoaNV('${n.id}','${esc(n.ten)}')">Xóa</button>
   </div>`).join("");
@@ -1035,35 +1043,42 @@ function moFormNV(){
   document.getElementById("nvFormTitle").textContent="➕ Thêm nhân viên";
   document.getElementById("nvId").value="";
   document.getElementById("nvF_ten").value="";
-  document.getElementById("nvF_pin").value="";
+  document.getElementById("nvF_email").value="";
   document.getElementById("nvF_luong").value="";
   document.getElementById("nvF_vaitro").value="";
   document.getElementById("nvFormNote").textContent="";
+  document.getElementById("nvF_pinLbl").style.display="none";
+  document.getElementById("nvF_resetPin").checked=false;
+  document.getElementById("nvF_hint").style.display="block";
   document.getElementById("nvModal").classList.add("show");
 }
 function suaNV(n){
   document.getElementById("nvFormTitle").textContent="✏️ Sửa: "+n.ten;
   document.getElementById("nvId").value=n.id;
   document.getElementById("nvF_ten").value=n.ten;
-  document.getElementById("nvF_pin").value=n.pin;
+  document.getElementById("nvF_email").value=n.email||"";
   document.getElementById("nvF_luong").value=n.luong;
   document.getElementById("nvF_vaitro").value=n.vaiTro||"";
   document.getElementById("nvFormNote").textContent="";
+  document.getElementById("nvF_pinLbl").style.display="block";
+  document.getElementById("nvF_resetPin").checked=false;
+  document.getElementById("nvF_hint").style.display="none";
   document.getElementById("nvModal").classList.add("show");
 }
 function dongNV(){ document.getElementById("nvModal").classList.remove("show"); }
 async function luuNV(btn){
   const ten=document.getElementById("nvF_ten").value.trim();
-  const pin=document.getElementById("nvF_pin").value.trim();
+  const email=document.getElementById("nvF_email").value.trim().toLowerCase();
   const luong=parseInt(String(document.getElementById("nvF_luong").value).replace(/\D/g,""),10)||0;
   const vaiTro=document.getElementById("nvF_vaitro").value.trim();
+  const resetPin=document.getElementById("nvF_resetPin").checked;
   const note=document.getElementById("nvFormNote");
   if(!ten){ note.style.color="#C0392B"; note.textContent="Nhập tên nhân viên."; return; }
-  if(!/^\d{4,8}$/.test(pin)){ note.style.color="#C0392B"; note.textContent="PIN phải 4–8 chữ số."; return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ note.style.color="#C0392B"; note.textContent="Email không hợp lệ."; return; }
   btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang lưu…";
-  const d=await jsonp({ action:"nv_save", adminPass:PASS, id:document.getElementById("nvId").value, ten, pin, luong, vaiTro, active:true });
+  const d=await jsonp({ action:"nv_save", adminPass:PASS, id:document.getElementById("nvId").value, ten, email, luong, vaiTro, active:true, resetPin });
   btn.disabled=false; btn.textContent=cu;
-  if(d.ok){ dongNV(); toast("Đã lưu nhân viên ✓"); taiDsNV(); }
+  if(d.ok){ dongNV(); toast(d.pinMacDinh?("Đã thêm · PIN ban đầu 123456 ✓"):"Đã lưu ✓"); taiDsNV(); }
   else { note.style.color="#C0392B"; note.textContent=d.error||"Lưu chưa được."; }
 }
 async function xoaNV(id, ten){
@@ -1213,6 +1228,39 @@ async function alertXong(kind, id){
   const d=await jsonp({ action: kind==="s"?"suco_xong":"goi_xong", id, adminPass:PASS });
   if(d&&d.ok){ toast("Đã xử lý ✓"); taiAlert(); if(typeof taiSuCoDash==="function") taiSuCoDash(); if(typeof taiGoiActive==="function") taiGoiActive(); }
   else toast((d&&d.error)||"Lỗi", true);
+}
+/* ===== Duyệt ứng/lấy lương (chủ) ===== */
+async function taiYeuCauLuong(){
+  const d=await jsonp({ action:"luong_list", adminPass:PASS });
+  const list=(d&&d.ok&&d.list)||[];
+  const cho=list.filter(x=>x.trangThai==="cho");
+  const xong=list.filter(x=>x.trangThai!=="cho");
+  const LO={ung:"📥 Ứng lương",lay:"💵 Lấy lương"};
+  const boxC=document.getElementById("luongChoDuyet");
+  if(!cho.length){ boxC.innerHTML='<div class="muted">Không có yêu cầu chờ duyệt.</div>'; }
+  else boxC.innerHTML=cho.map(x=>`<div style="background:#FFF7E9;border:1px solid #E0B277;border-radius:12px;padding:11px 12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+        <div style="flex:1;min-width:0"><b>${esc(x.ten)}</b> — ${LO[x.loai]||x.loai}<div style="font-size:18px;font-weight:800;color:#9a5a12">${fmt(x.soTien)}</div>
+          <div style="font-size:12px;color:#7a6f62">${esc(x.gio)}${x.ghiChu?(" · "+esc(x.ghiChu)):""}</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:9px">
+        <button class="btn" style="background:#2e7d4f;flex:1;padding:9px" onclick="duyetLuong('${x.id}','xong')">✓ Đã trả</button>
+        <button class="btn" style="background:#C0392B;flex:1;padding:9px" onclick="duyetLuong('${x.id}','tuchoi')">✕ Từ chối</button>
+      </div></div>`).join("");
+  const TT={xong:["✓ Đã trả","#2e7d4f"],tuchoi:["✕ Từ chối","#C0392B"],cho:["⏳ Chờ","#9a5a12"]};
+  const boxH=document.getElementById("luongLichSu");
+  if(!xong.length){ boxH.innerHTML='<div class="muted">Chưa có lịch sử.</div>'; return; }
+  boxH.innerHTML=xong.map(x=>{ const t=TT[x.trangThai]||["?","#888"];
+    return `<div class="nv-row"><div class="nv-i"><b>${esc(x.ten)} · ${fmt(x.soTien)}</b>
+      <small>${LO[x.loai]||x.loai} · ${esc(x.gio)}${x.ghiChu?(" · "+esc(x.ghiChu)):""}</small></div>
+      <span style="color:${t[1]};font-weight:800;font-size:12.5px">${t[0]}</span></div>`;
+  }).join("");
+}
+async function duyetLuong(id, trangThai){
+  const lbl = trangThai==="xong" ? "Xác nhận ĐÃ TRẢ tiền cho yêu cầu này?" : "Từ chối yêu cầu này?";
+  if(!confirm(lbl)) return;
+  const d=await jsonp({ action:"luong_duyet", adminPass:PASS, id, trangThai });
+  if(d&&d.ok){ toast("Đã cập nhật ✓"); taiYeuCauLuong(); } else toast((d&&d.error)||"Lỗi", true);
 }
 </script>
 </body>
