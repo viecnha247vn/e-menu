@@ -61,6 +61,12 @@
   .b-bill{background:var(--xanh); color:#fff}
   .tb.suco{background:linear-gradient(180deg,#3a1414,#2e0f0f); border-color:#8a2525}
   .b-suco{background:#c0392b; color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:12.5px; font-weight:800}
+  .lg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .lg-card{background:#241c16;border:1px solid #3a2e23;border-radius:12px;padding:10px 8px;text-align:center}
+  .lg-card .lbl{font-size:11.5px;color:#a3907d}
+  .lg-card .gio{font-size:14px;font-weight:800;margin-top:3px}
+  .lg-card .tien{font-size:12.5px;color:#e9c987;margin-top:2px}
+  .lg-row{display:flex;gap:8px;margin-top:8px}
   .b-baove{background:#b5651d; color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:12.5px; font-weight:800}
   .tb.baove{background:linear-gradient(180deg,#3a2412,#33200f); border-color:#8a5a1e}
   .tb.chung{background:linear-gradient(180deg,#16283a,#132235); border-color:#2f4a6e}
@@ -115,10 +121,12 @@
 <div class="pinbox" id="pinbox">
   <div class="panel">
     <h2>🧑‍🍳 Nhân viên</h2>
-    <p>Đăng nhập bằng mã PIN cá nhân của bạn</p>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
+    <p>Đăng nhập bằng <b>email</b> và <b>mã PIN</b> (PIN ban đầu: 123456)</p>
+    <input id="emailInput" type="email" inputmode="email" autocapitalize="off" placeholder="email của bạn" autofocus>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="Mã PIN">
     <div class="err" id="pinErr"></div>
     <button onclick="vao()">Đăng nhập</button>
+    <button onclick="quenPin()" style="background:transparent;color:#caa;box-shadow:none;font-size:13px;margin-top:6px">Quên PIN?</button>
   </div>
 </div>
 
@@ -126,6 +134,7 @@
   <header class="top">
     <div class="brand">👋 <span id="nvTen">Nhân viên</span> <span class="vt-chip" id="nvVt"></span></div>
     <div class="tools">
+      <button id="btnLuong" onclick="moLuong()">💰 Lương</button>
       <button id="btnChuong" onclick="toggleChuong()">🔔</button>
       <button onclick="dangXuat()">Đăng xuất</button>
     </div>
@@ -166,6 +175,35 @@
 </div>
 
 <!-- Chi tiết bàn -->
+<div class="modal" id="modalLuong">
+  <div class="sheet" style="max-height:88vh;overflow:auto">
+    <h3>💰 Lương của tôi</h3>
+    <div id="luongGio" class="lg-grid"></div>
+    <div class="lg-row">
+      <button class="btn" style="background:#b5651d;flex:1" onclick="moYeuCau('ung')">📥 Ứng lương</button>
+      <button class="btn" style="background:#2e7d4f;flex:1" onclick="moYeuCau('lay')">💵 Lấy lương</button>
+    </div>
+    <div id="ycForm" style="display:none;margin-top:10px;background:#241c16;border:1px solid #3a2e23;border-radius:12px;padding:12px">
+      <div id="ycTitle" style="font-weight:800;margin-bottom:8px"></div>
+      <input id="ycTien" class="inp" inputmode="numeric" placeholder="Số tiền (vd 500000)">
+      <input id="ycGhiChu" class="inp" placeholder="Lý do / ghi chú (nếu cần)">
+      <div class="hd-note" id="ycErr"></div>
+      <div class="lg-row">
+        <button class="btn" style="flex:1" onclick="guiYeuCau(this)">Gửi yêu cầu</button>
+        <button class="btn ghost" style="flex:1" onclick="document.getElementById('ycForm').style.display='none'">Hủy</button>
+      </div>
+    </div>
+    <div class="sec-h" style="margin:14px 0 6px">📜 Lịch sử yêu cầu</div>
+    <div id="luongLS" class="tb-list"></div>
+    <div class="sec-h" style="margin:14px 0 6px">🔑 Đổi mã PIN</div>
+    <input id="pinCu" class="inp" type="password" inputmode="numeric" maxlength="8" placeholder="PIN hiện tại">
+    <input id="pinMoi" class="inp" type="password" inputmode="numeric" maxlength="8" placeholder="PIN mới (4–8 số)">
+    <div class="hd-note" id="pinErr2"></div>
+    <button class="btn" onclick="doiPin(this)">Đổi PIN</button>
+    <button class="btn ghost" onclick="dong('modalLuong')">Đóng</button>
+  </div>
+</div>
+
 <div class="modal" id="modalBan">
   <div class="sheet">
     <h3 id="mbTitle">Bàn</h3>
@@ -233,6 +271,7 @@
 <script>
 const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
 let PIN = "";
+let EMAIL = "";
 let CAUHINH = null;
 let NV = null, dangLam = false, vaoLuc = null, tickTimer = null, ccPoll = null;
 
@@ -259,15 +298,24 @@ function ting(){
 /* ===== Đăng nhập ===== */
 document.getElementById("pinInput").addEventListener("keydown", e=>{ if(e.key==="Enter") vao(); });
 async function vao(){
+  const em=document.getElementById("emailInput").value.trim().toLowerCase();
   const v=document.getElementById("pinInput").value.trim();
+  if(!em){ document.getElementById("pinErr").textContent="Nhập email"; return; }
   if(!v){ document.getElementById("pinErr").textContent="Nhập mã PIN"; return; }
   document.getElementById("pinErr").textContent="Đang kiểm tra…";
-  const d=await jsonp({ action:"nv_login", pin:v });
-  if(!d.ok){ document.getElementById("pinErr").textContent=d.error||"PIN không đúng"; return; }
-  PIN=v; NV=d.nv;
-  try{ localStorage.setItem("emenu_nv_pin", v); }catch(e){}
+  const d=await jsonp({ action:"nv_login", email:em, pin:v });
+  if(!d.ok){ document.getElementById("pinErr").textContent=d.error||"Sai email hoặc PIN"; return; }
+  PIN=v; EMAIL=em; NV=d.nv;
+  try{ localStorage.setItem("emenu_nv_email", em); localStorage.setItem("emenu_nv_pin", v); }catch(e){}
   try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
   vaoApp();
+}
+async function quenPin(){
+  const em=document.getElementById("emailInput").value.trim().toLowerCase();
+  if(!em){ document.getElementById("pinErr").textContent="Nhập email để nhận lại PIN"; return; }
+  document.getElementById("pinErr").textContent="Đang gửi…";
+  const d=await jsonp({ action:"nv_quenpin", email:em });
+  document.getElementById("pinErr").textContent = d.ok ? "✓ Đã gửi PIN vào email của bạn." : (d.error||"Không gửi được");
 }
 function vaoApp(){
   document.getElementById("pinbox").style.display="none";
@@ -282,11 +330,11 @@ function vaoApp(){
   if(!ccPoll) ccPoll=setInterval(capNhatCa, 30000);
 }
 function dangXuat(){
-  try{ localStorage.removeItem("emenu_nv_pin"); }catch(e){}
+  try{ localStorage.removeItem("emenu_nv_pin"); localStorage.removeItem("emenu_nv_email"); }catch(e){}
   if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
   if(ccPoll){ clearInterval(ccPoll); ccPoll=null; }
   if(bepTimer){ clearInterval(bepTimer); bepTimer=null; }
-  PIN=""; NV=null; dangLam=false;
+  PIN=""; EMAIL=""; NV=null; dangLam=false;
   document.getElementById("app").style.display="none";
   document.getElementById("pinbox").style.display="flex";
   document.getElementById("pinInput").value="";
@@ -594,12 +642,16 @@ async function xongSuCo(id){
 /* ===== CHẤM CÔNG (vào/ra ca) ===== */
 function hai(n){ return (n<10?"0":"")+n; }
 function gioPhut(h){ const m=Math.round((Number(h)||0)*60); return Math.floor(m/60)+"g "+(m%60)+"p"; }
+let LUONG_GIO = null;   // cache giờ/tiền ngày-tuần-tháng cho modal Lương
 async function capNhatCa(){
-  if(!PIN) return;
-  const d=await jsonp({ action:"cc_trangthai", pin:PIN });
+  if(!PIN||!EMAIL) return;
+  const d=await jsonp({ action:"cc_trangthai", email:EMAIL, pin:PIN });
   if(!d.ok) return;
   dangLam=d.dangLam; vaoLuc=d.vaoLuc;
+  LUONG_GIO={ gioHomNay:d.gioHomNay, gioTuan:d.gioTuan, gioThang:d.gioThang, tienHomNay:d.tienHomNay, tienTuan:d.tienTuan, tienThang:d.tienThang };
+  if(NV&&d.nv&&d.nv.luong!=null) NV.luong=d.nv.luong;
   veCa(d.gioHomNay);
+  if(document.getElementById("modalLuong").classList.contains("show")) veLuongGio();
 }
 function veCa(gioHomNay){
   const strip=document.getElementById("ccStrip"), stt=document.getElementById("ccStt"),
@@ -630,23 +682,23 @@ function chayDongHo(gpHomNay){
 async function bamCa(){
   const btn=document.getElementById("ccBtn"); btn.disabled=true;
   if(!dangLam){
-    const d=await jsonp({ action:"cc_vao", pin:PIN });
+    const d=await jsonp({ action:"cc_vao", email:EMAIL, pin:PIN });
     if(d.ok){ toast("Đã vào ca ✓"); await capNhatCa(); } else toast(d.error||"Không vào ca được", true);
   } else {
     if(confirm("Kết thúc ca làm việc?")){
-      const d=await jsonp({ action:"cc_ra", pin:PIN });
+      const d=await jsonp({ action:"cc_ra", email:EMAIL, pin:PIN });
       if(d.ok){ toast("Đã ra ca · ca này "+gioPhut(d.soGio)+" ✓"); await capNhatCa(); } else toast(d.error||"Không ra ca được", true);
     }
   }
   btn.disabled=false;
 }
 
-/* Tự đăng nhập nếu đã nhớ PIN */
+/* Tự đăng nhập nếu đã nhớ email+PIN */
 (async ()=>{
-  let saved=""; try{ saved=localStorage.getItem("emenu_nv_pin")||""; }catch(e){}
-  if(saved){
-    const d=await jsonp({ action:"nv_login", pin:saved });
-    if(d.ok){ PIN=saved; NV=d.nv; try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} vaoApp(); }
+  let em="", pin=""; try{ em=localStorage.getItem("emenu_nv_email")||""; pin=localStorage.getItem("emenu_nv_pin")||""; }catch(e){}
+  if(em && pin){
+    const d=await jsonp({ action:"nv_login", email:em, pin:pin });
+    if(d.ok){ PIN=pin; EMAIL=em; NV=d.nv; try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} vaoApp(); }
   }
 })();
 /* ===== GỌI & THÔNG BÁO ===== */
@@ -707,6 +759,67 @@ async function xongGoi(id){
 }
 function goiAn(id){ goiAnLocal.add(Number(id)); veGoi(); }
 
+/* ===== LƯƠNG CỦA TÔI ===== */
+let ycLoai="";
+function moLuong(){
+  document.getElementById("modalLuong").classList.add("show");
+  document.getElementById("ycForm").style.display="none";
+  document.getElementById("pinErr2").textContent="";
+  document.getElementById("pinCu").value=""; document.getElementById("pinMoi").value="";
+  veLuongGio(); capNhatCa(); taiLuongLS();
+}
+function veLuongGio(){
+  const box=document.getElementById("luongGio"); if(!box) return;
+  const g=LUONG_GIO||{gioHomNay:0,gioTuan:0,gioThang:0,tienHomNay:0,tienTuan:0,tienThang:0};
+  const card=(lbl,gio,tien)=>`<div class="lg-card"><div class="lbl">${lbl}</div><div class="gio">${gioPhut(gio)}</div><div class="tien">${fmt(tien)}</div></div>`;
+  box.innerHTML = card("Hôm nay",g.gioHomNay,g.tienHomNay)+card("Tuần này",g.gioTuan,g.tienTuan)+card("Tháng này",g.gioThang,g.tienThang);
+}
+async function taiLuongLS(){
+  const d=await jsonp({ action:"luong_list", email:EMAIL, pin:PIN });
+  veLuongLS((d&&d.ok&&d.list)||[]);
+}
+function veLuongLS(list){
+  const box=document.getElementById("luongLS");
+  if(!list.length){ box.innerHTML='<div style="color:#a3907d;font-size:13px;padding:6px">Chưa có yêu cầu nào.</div>'; return; }
+  const TT={cho:["⏳ Chờ duyệt","#e9c987"],xong:["✓ Đã trả","#7fd1a0"],tuchoi:["✕ Từ chối","#ff8787"]};
+  const LO={ung:"📥 Ứng lương",lay:"💵 Lấy lương"};
+  box.innerHTML=list.map(x=>{
+    const tt=TT[x.trangThai]||["?","#aaa"];
+    return `<div class="tb"><div class="info"><b>${LO[x.loai]||x.loai} · ${fmt(x.soTien)}</b>
+      <small>${esc(x.gio)}${x.ghiChu?(" · "+esc(x.ghiChu)):""}</small></div>
+      <div class="acts" style="color:${tt[1]};font-weight:800;font-size:12.5px">${tt[0]}</div></div>`;
+  }).join("");
+}
+function moYeuCau(loai){
+  ycLoai=loai;
+  document.getElementById("ycTitle").textContent = loai==="ung" ? "📥 Ứng lương (nhận trước)" : "💵 Lấy lương (đã làm)";
+  document.getElementById("ycTien").value=""; document.getElementById("ycGhiChu").value=""; document.getElementById("ycErr").textContent="";
+  document.getElementById("ycForm").style.display="block";
+}
+async function guiYeuCau(btn){
+  const tien=Math.round(Number(String(document.getElementById("ycTien").value).replace(/[^\d]/g,""))||0);
+  const ghiChu=document.getElementById("ycGhiChu").value.trim();
+  const err=document.getElementById("ycErr");
+  if(tien<=0){ err.style.color="#ff8787"; err.textContent="Nhập số tiền hợp lệ."; return; }
+  btn.disabled=true;
+  const d=await jsonp({ action:"luong_yeucau", email:EMAIL, pin:PIN, loai:ycLoai, soTien:tien, ghiChu });
+  btn.disabled=false;
+  if(d&&d.ok){ document.getElementById("ycForm").style.display="none"; toast("Đã gửi yêu cầu ✓"); taiLuongLS(); }
+  else { err.style.color="#ff8787"; err.textContent=(d&&d.error)||"Gửi chưa được."; }
+}
+async function doiPin(btn){
+  const pc=document.getElementById("pinCu").value.trim(), pm=document.getElementById("pinMoi").value.trim();
+  const err=document.getElementById("pinErr2");
+  if(!/^\d{4,8}$/.test(pm)){ err.style.color="#ff8787"; err.textContent="PIN mới phải 4–8 chữ số."; return; }
+  btn.disabled=true;
+  const d=await jsonp({ action:"nv_doipin", email:EMAIL, pinCu:pc, pinMoi:pm });
+  btn.disabled=false;
+  if(d&&d.ok){
+    PIN=pm; try{ localStorage.setItem("emenu_nv_pin", pm); }catch(e){}
+    document.getElementById("pinCu").value=""; document.getElementById("pinMoi").value="";
+    err.style.color="#7fd1a0"; err.textContent="✓ Đã đổi PIN.";
+  } else { err.style.color="#ff8787"; err.textContent=(d&&d.error)||"Đổi PIN chưa được."; }
+}
 </script>
 </body>
 </html>
