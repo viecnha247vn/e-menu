@@ -2,188 +2,24 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Nhân viên — QUÁN VIỆT</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0; url=phucvu.html">
+<title>Trang nhân viên — chuyển hướng…</title>
 <style>
-  :root{ --do:#7A1A1A; --do-sau:#5E1414; --dong:#C8A24B; --kem:#F7F2E7; --nen:#FBF7EF; --chu:#2A2320; --mo:#8A7F72; --vien:#E9DFC9; --xanh:#2E8B57; }
-  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent}
-  body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--nen); color:var(--chu); min-height:100vh}
-  button{font:inherit; cursor:pointer}
-
-  /* Login */
-  .login{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:22px; background:linear-gradient(160deg,#5E1414,#3a0d0d)}
-  .login .card{background:#fff; border-radius:20px; padding:30px 26px; width:340px; max-width:100%; text-align:center; box-shadow:0 24px 60px rgba(0,0,0,.3)}
-  .login h1{font-size:21px; color:var(--do); margin-bottom:4px}
-  .login .sub{font-size:13px; color:var(--mo); margin-bottom:20px}
-  .login input{width:100%; padding:14px; font-size:24px; text-align:center; letter-spacing:8px; border:1.5px solid var(--vien); border-radius:12px; color:var(--chu); background:#fff}
-  .login .err{color:#C0392B; font-size:13px; min-height:18px; margin-top:8px}
-  .login button{width:100%; margin-top:12px; padding:14px; border:none; border-radius:12px; background:var(--do); color:#fff; font-weight:800; font-size:16px}
-
-  .wrap{max-width:480px; margin:0 auto; padding:0 0 40px}
-  .top{background:linear-gradient(160deg,#7A1A1A,#5E1414); color:var(--kem); padding:26px 20px calc(26px + env(safe-area-inset-top)); padding-top:max(26px,env(safe-area-inset-top)); border-radius:0 0 22px 22px}
-  .top .hi{font-size:14px; opacity:.85}
-  .top .ten{font-size:26px; font-weight:800; margin:2px 0 6px}
-  .top .vt{display:inline-block; font-size:12px; background:rgba(255,255,255,.16); padding:4px 12px; border-radius:20px}
-  .top .out{float:right; background:rgba(255,255,255,.14); border:none; color:#fff; border-radius:10px; padding:7px 12px; font-size:13px; font-weight:600}
-
-  .body{padding:18px 18px 0}
-  .card{background:#fff; border:1px solid var(--vien); border-radius:18px; padding:22px; text-align:center; box-shadow:0 6px 18px rgba(90,70,40,.06); margin-bottom:16px}
-  .stt{font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--mo)}
-  .stt.on{color:var(--xanh)}
-  .dong-ho{font-size:46px; font-weight:800; letter-spacing:1px; margin:8px 0; font-variant-numeric:tabular-nums}
-  .vaoluc{font-size:13px; color:var(--mo); margin-bottom:18px; min-height:18px}
-  .big{width:100%; padding:18px; border:none; border-radius:16px; font-size:19px; font-weight:800; color:#fff}
-  .big.vao{background:var(--xanh)}
-  .big.ra{background:#C0392B}
-  .big:disabled{opacity:.6}
-
-  .info-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-  .mini{background:#fff; border:1px solid var(--vien); border-radius:16px; padding:16px; text-align:center}
-  .mini .lbl{font-size:12px; color:var(--mo); margin-bottom:5px}
-  .mini .val{font-size:21px; font-weight:800; color:var(--do)}
-  .note{font-size:12.5px; color:var(--mo); text-align:center; padding:6px 14px; line-height:1.5}
-  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px); background:#000; color:#fff; padding:11px 18px; border-radius:30px; font-size:14px; opacity:0; transition:.25s; z-index:90; pointer-events:none}
-  .toast.show{opacity:.95; transform:translateX(-50%) translateY(0)}
-  .toast.err{background:#7a1f1f}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#1a1411;color:#f3e9da;
+       display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;padding:24px}
+  .b{max-width:340px}
+  h1{font-size:20px;color:#e9c987;margin:0 0 8px}
+  p{font-size:14px;color:#a3907d;line-height:1.6;margin:0 0 18px}
+  a{display:inline-block;background:#7A1A1A;color:#fff;text-decoration:none;padding:13px 22px;border-radius:12px;font-weight:700}
 </style>
+<script>location.replace("phucvu.html");</script>
 </head>
 <body>
-
-<div class="login" id="login">
-  <div class="card">
-    <h1>👋 Chào nhân viên</h1>
-    <div class="sub">Đăng nhập bằng mã PIN cá nhân của bạn</div>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="••••" autofocus>
-    <div class="err" id="loginErr"></div>
-    <button onclick="dangNhap()">Đăng nhập</button>
+  <div class="b">
+    <h1>🧑‍🍳 Trang nhân viên</h1>
+    <p>Trang nhân viên đã được nâng cấp đầy đủ (chấm công + phục vụ + sự cố + gọi bảo vệ).<br>Đang chuyển bạn sang trang mới…</p>
+    <a href="phucvu.html">Mở trang nhân viên →</a>
   </div>
-</div>
-
-<div class="wrap" id="app" style="display:none">
-  <div class="top">
-    <button class="out" onclick="dangXuat()">Đăng xuất</button>
-    <div class="hi">Xin chào,</div>
-    <div class="ten" id="nvTen">—</div>
-    <span class="vt" id="nvVt">Nhân viên</span>
-  </div>
-  <div class="body">
-    <div class="card">
-      <div class="stt" id="ccStt">Chưa vào ca</div>
-      <div class="dong-ho" id="ccDongHo">00:00:00</div>
-      <div class="vaoluc" id="ccVaoLuc"></div>
-      <button class="big vao" id="ccBtn" onclick="bamCa()">▶ Vào ca</button>
-    </div>
-    <div class="info-grid">
-      <div class="mini"><div class="lbl">Giờ làm hôm nay</div><div class="val" id="ccGioHomNay">0g 0p</div></div>
-      <div class="mini"><div class="lbl">Trạng thái</div><div class="val" id="ccTrangThai" style="font-size:18px">Nghỉ</div></div>
-    </div>
-    <div class="note">Giờ vào/ra ca được lưu tự động. Chủ quán tính lương theo tổng số giờ bạn làm.</div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-const API = "https://script.google.com/macros/s/AKfycbyEN7YLX8dMSFdhsqlxxru6Uedtuk09A2b6Wlj-Cos0Kyv8IRJ4HLXqiWPjD3VNHCVI/exec";
-let PIN = "", NV = null, dangLam = false, vaoLuc = null, tickTimer = null;
-
-async function jsonp(params){
-  try{ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(params)}); return await r.json(); }
-  catch(e){ return { ok:false, error:"Lỗi kết nối mạng" }; }
-}
-const esc = s => String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function toast(m,err){ const t=document.getElementById("toast"); t.textContent=m; t.className="toast show"+(err?" err":""); setTimeout(()=>t.className="toast",2300); }
-function hai(n){ return (n<10?"0":"")+n; }
-function gioPhut(h){ const m=Math.round((Number(h)||0)*60); return Math.floor(m/60)+"g "+(m%60)+"p"; }
-
-document.getElementById("pinInput").addEventListener("keydown",e=>{ if(e.key==="Enter") dangNhap(); });
-
-async function dangNhap(){
-  const v=document.getElementById("pinInput").value.trim();
-  if(!v){ document.getElementById("loginErr").textContent="Nhập mã PIN"; return; }
-  document.getElementById("loginErr").textContent="Đang kiểm tra…";
-  const d=await jsonp({ action:"nv_login", pin:v });
-  if(!d.ok){ document.getElementById("loginErr").textContent=d.error||"PIN không đúng"; return; }
-  PIN=v; NV=d.nv;
-  try{ localStorage.setItem("emenu_nv_pin", v); }catch(e){}
-  vaoApp();
-}
-function vaoApp(){
-  document.getElementById("login").style.display="none";
-  document.getElementById("app").style.display="block";
-  document.getElementById("nvTen").textContent=NV.ten||"Nhân viên";
-  document.getElementById("nvVt").textContent=NV.vaiTro||"Nhân viên";
-  capNhat();
-  if(!window._poll) window._poll=setInterval(capNhat, 30000);
-}
-function dangXuat(){
-  try{ localStorage.removeItem("emenu_nv_pin"); }catch(e){}
-  PIN=""; NV=null; dangLam=false; vaoLuc=null;
-  if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
-  if(window._poll){ clearInterval(window._poll); window._poll=null; }
-  document.getElementById("app").style.display="none";
-  document.getElementById("login").style.display="flex";
-  document.getElementById("pinInput").value="";
-  document.getElementById("loginErr").textContent="";
-}
-
-async function capNhat(){
-  const d=await jsonp({ action:"cc_trangthai", pin:PIN });
-  if(!d.ok) return;
-  dangLam=d.dangLam; vaoLuc=d.vaoLuc;
-  document.getElementById("ccGioHomNay").textContent=gioPhut(d.gioHomNay);
-  veCa();
-}
-function veCa(){
-  const stt=document.getElementById("ccStt"), btn=document.getElementById("ccBtn"),
-        vl=document.getElementById("ccVaoLuc"), tt=document.getElementById("ccTrangThai");
-  if(dangLam){
-    stt.textContent="Đang trong ca"; stt.classList.add("on");
-    btn.textContent="■ Ra ca"; btn.className="big ra";
-    tt.textContent="Đang làm"; tt.style.color="var(--xanh)";
-    const t=new Date(vaoLuc); vl.textContent="Vào ca lúc "+hai(t.getHours())+":"+hai(t.getMinutes());
-    chayDongHo();
-  } else {
-    stt.textContent="Chưa vào ca"; stt.classList.remove("on");
-    btn.textContent="▶ Vào ca"; btn.className="big vao";
-    tt.textContent="Nghỉ"; tt.style.color="";
-    vl.textContent="";
-    if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
-    document.getElementById("ccDongHo").textContent="00:00:00";
-  }
-}
-function chayDongHo(){
-  if(tickTimer) clearInterval(tickTimer);
-  const ve=()=>{
-    let s=Math.floor((Date.now()-vaoLuc)/1000); if(s<0)s=0;
-    document.getElementById("ccDongHo").textContent=hai(Math.floor(s/3600))+":"+hai(Math.floor((s%3600)/60))+":"+hai(s%60);
-  };
-  ve(); tickTimer=setInterval(ve,1000);
-}
-async function bamCa(){
-  const btn=document.getElementById("ccBtn"); btn.disabled=true;
-  if(!dangLam){
-    const d=await jsonp({ action:"cc_vao", pin:PIN });
-    if(d.ok){ toast("Đã vào ca ✓"); await capNhat(); }
-    else toast(d.error||"Không vào ca được", true);
-  } else {
-    if(confirm("Kết thúc ca làm việc?")){
-      const d=await jsonp({ action:"cc_ra", pin:PIN });
-      if(d.ok){ toast("Đã ra ca · ca này "+gioPhut(d.soGio)+" ✓"); await capNhat(); }
-      else toast(d.error||"Không ra ca được", true);
-    }
-  }
-  btn.disabled=false;
-}
-
-// Tự đăng nhập nếu đã nhớ PIN
-(async ()=>{
-  let saved=""; try{ saved=localStorage.getItem("emenu_nv_pin")||""; }catch(e){}
-  if(saved){
-    const d=await jsonp({ action:"nv_login", pin:saved });
-    if(d.ok){ PIN=saved; NV=d.nv; vaoApp(); }
-  }
-})();
-</script>
 </body>
 </html>

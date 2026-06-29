@@ -219,6 +219,8 @@
 
 <div id="app" style="display:none">
 
+  <div id="alertBar" class="wrap" style="display:none"></div>
+
   <!-- ============ BẾP ============ -->
   <section class="sec wrap" id="sec-bep" hidden>
     <div class="bep-bar">
@@ -518,10 +520,13 @@ async function dangNhap(){
   const d = await jsonp({ action:"nhap_list", adminPass:pass, limit:1 });
   if(d.ok){
     PASS = pass; try{ localStorage.setItem("emenu_admin", pass); }catch(e){}
+    try{ if(!window._dbAudio) window._dbAudio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
     document.getElementById("pinbox").style.display="none";
     document.getElementById("app").style.display="block";
     document.getElementById("nav").style.display="flex";
     chuyen("bep");
+    kiemTraBackend();
+    taiAlert(); if(!window._alertTimer) window._alertTimer=setInterval(taiAlert, 4000);
   } else {
     document.getElementById("pinErr").textContent = d.error || "Sai mật khẩu";
   }
@@ -1156,6 +1161,58 @@ async function goiRieng(btn){
   btn.disabled=false;
   if(d.ok){ document.getElementById("gRiengND").value=""; note.style.color="#2B7A3E"; note.textContent="Đã gọi riêng nhân viên ✓"; taiGoiActive(); }
   else { note.style.color="#C0392B"; note.textContent=d.error||"Lỗi"; }
+}
+/* ===== Cảnh báo toàn cục: backend cũ + sự cố + cuộc gọi (hiện trên mọi tab) ===== */
+let warnStale=false, alertSuco=[], alertGoi=[], seenAlert=new Set(), firstAlert=true;
+function chuongDB(){
+  const ac=window._dbAudio; if(!ac) return;
+  try{ [0,0.16].forEach((t,k)=>{ const o=ac.createOscillator(),g=ac.createGain(); o.connect(g); g.connect(ac.destination);
+    o.type="sine"; o.frequency.value=k===0?880:1175;
+    g.gain.setValueAtTime(0.0001,ac.currentTime+t); g.gain.exponentialRampToValueAtTime(0.25,ac.currentTime+t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+t+0.14);
+    o.start(ac.currentTime+t); o.stop(ac.currentTime+t+0.15); }); }catch(e){}
+}
+async function kiemTraBackend(){
+  const d=await jsonp({ action:"ping" });
+  warnStale = !(d && d.ok && d.features && d.features.goi);
+  veAlert();
+}
+async function taiAlert(){
+  const [s,g]=await Promise.all([ jsonp({action:"suco_list"}), jsonp({action:"goi_list"}) ]);
+  alertSuco=(s&&s.ok&&s.list)||[];
+  alertGoi=(g&&g.ok&&g.list)||[];
+  const ids=[...alertSuco.map(x=>"s"+x.id), ...alertGoi.map(x=>"g"+x.id)];
+  const coMoi=ids.some(id=>!seenAlert.has(id));
+  if(!firstAlert && coMoi) chuongDB();
+  seenAlert=new Set(ids); firstAlert=false;
+  veAlert();
+}
+function veAlert(){
+  const box=document.getElementById("alertBar"); if(!box) return;
+  let html="";
+  if(warnStale){
+    html+=`<div style="background:#7A1A1A;color:#fff;border-radius:12px;padding:12px 14px;margin:10px 0;font-size:13.5px;line-height:1.5">
+      ⚠️ <b>Backend đang chạy bản cũ</b> — sự cố & gọi nhân viên sẽ không hoạt động.<br>
+      Vào Apps Script → <b>Deploy → Manage deployments → ✎ (Edit) → Version: New version → Deploy</b>.</div>`;
+  }
+  const tenG={baove:"🛡️ Bảo vệ",chung:"📣 Gọi chung",hop:"🕐 Họp",rieng:"👤 Gọi riêng"};
+  alertGoi.forEach(g=>{
+    const dest=g.loai==="rieng"?(" → "+esc(g.toiTen||"")):"";
+    html+=`<div style="display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#fff5e9,#ffeacc);border:1px solid #e0b277;border-radius:12px;padding:10px 12px;margin:8px 0">
+      <div style="flex:1;min-width:0"><b style="color:#9a5a12">${tenG[g.loai]||g.loai}${dest}</b><div style="font-size:12.5px;color:#7a5a32">${esc(g.noiDung||"")}${g.tu?(" · "+esc(g.tu)):""} · ${esc(g.gio)}</div></div>
+      <button class="btn" style="background:#8A7F72;width:auto;padding:7px 11px;flex-shrink:0" onclick="alertXong('g','${g.id}')">Kết thúc</button></div>`;
+  });
+  alertSuco.forEach(s=>{
+    html+=`<div style="display:flex;align-items:center;gap:10px;background:linear-gradient(180deg,#fdecea,#fbddd9);border:1px solid #e8a39b;border-radius:12px;padding:10px 12px;margin:8px 0">
+      <div style="flex:1;min-width:0"><b style="color:#9c1f12">🚨 ${esc(s.loai)}${s.ban?(' · Bàn '+esc(s.ban)):''}</b><div style="font-size:12.5px;color:#7a3b34">${esc(s.noiDung||"")}${s.nguoi?(" — "+esc(s.nguoi)):""} · ${esc(s.gio)}</div></div>
+      <button class="btn" style="background:#c0392b;width:auto;padding:7px 11px;flex-shrink:0" onclick="alertXong('s','${s.id}')">Đã xử lý</button></div>`;
+  });
+  box.innerHTML=html;
+  box.style.display = html ? "block" : "none";
+}
+async function alertXong(kind, id){
+  const d=await jsonp({ action: kind==="s"?"suco_xong":"goi_xong", id, adminPass:PASS });
+  if(d&&d.ok){ toast("Đã xử lý ✓"); taiAlert(); if(typeof taiSuCoDash==="function") taiSuCoDash(); if(typeof taiGoiActive==="function") taiGoiActive(); }
+  else toast((d&&d.error)||"Lỗi", true);
 }
 </script>
 </body>
