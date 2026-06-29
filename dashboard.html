@@ -432,6 +432,17 @@
       <a class="btn ghost" href="nhanvien.html" target="_blank" style="display:block;text-align:center;text-decoration:none;margin-top:8px">Mở trang nhân viên (chấm công) →</a>
     </div>
     <div class="card">
+      <h3>📣 Gọi &amp; thông báo nhân viên</h3>
+      <div id="goiActive"></div>
+      <label class="nv-lbl">📣 Gọi chung tất cả</label>
+      <div style="display:flex;gap:8px"><input id="gChung" class="nv-inp" style="flex:1" placeholder="Nội dung (vd: Lên tập trung quầy)"><button class="btn" style="width:auto;padding:11px 16px;flex-shrink:0" onclick="goiChung(this)">Gọi</button></div>
+      <label class="nv-lbl">🕐 Hẹn họp</label>
+      <div style="display:flex;gap:8px"><input id="gHopGio" class="nv-inp" type="time" style="width:118px;flex-shrink:0"><input id="gHopND" class="nv-inp" style="flex:1" placeholder="Nội dung họp"><button class="btn" style="width:auto;padding:11px 16px;flex-shrink:0" onclick="hopHen(this)">Hẹn</button></div>
+      <label class="nv-lbl">👤 Gọi riêng 1 người</label>
+      <div style="display:flex;gap:8px"><select id="gRiengAi" class="nv-inp" style="flex:1"></select><input id="gRiengND" class="nv-inp" style="flex:1" placeholder="Lời nhắn"><button class="btn" style="width:auto;padding:11px 16px;flex-shrink:0" onclick="goiRieng(this)">Gọi</button></div>
+      <div id="goiNote" style="font-size:13px;min-height:18px;margin-top:8px"></div>
+    </div>
+    <div class="card">
       <h3>💰 Bảng lương</h3>
       <div class="tabs" id="luongKy" style="margin-bottom:12px">
         <button class="on" onclick="chonKyLuong('thang',this)">Tháng này</button>
@@ -999,12 +1010,14 @@ async function xongSuCoDash(id){
 }
 /* ===== NHÂN SỰ & BẢNG LƯƠNG ===== */
 let nvDanhSach=[];
-async function taiNhanSu(){ await taiDsNV(); chonKyLuong(luongKyHienTai); }
+async function taiNhanSu(){ await taiDsNV(); chonKyLuong(luongKyHienTai); taiGoiActive(); }
 async function taiDsNV(){
   const box=document.getElementById("nvList");
   const d=await jsonp({ action:"nv_list", adminPass:PASS });
   if(!d.ok){ box.innerHTML='<div class="muted" style="color:#C0392B">'+esc(d.error||"Lỗi tải")+'</div>'; return; }
   nvDanhSach=d.list||[];
+  const sel=document.getElementById("gRiengAi");
+  if(sel) sel.innerHTML = nvDanhSach.filter(n=>n.active).map(n=>`<option value="${esc(n.id)}">${esc(n.ten)}</option>`).join("") || '<option value="">(chưa có nhân viên)</option>';
   if(!nvDanhSach.length){ box.innerHTML='<div class="muted">Chưa có nhân viên. Bấm “Thêm nhân viên”.</div>'; return; }
   box.innerHTML=nvDanhSach.map(n=>`<div class="nv-row">
     <div class="nv-i"><b>${esc(n.ten)}</b> ${n.active?'':'<span class="nv-pill" style="background:#eee;color:#999">đã khóa</span>'}
@@ -1088,6 +1101,62 @@ async function taiBangLuong(){
       </div>`;
 }
 function gioPhutLuong(h){ const m=Math.round((Number(h)||0)*60); return Math.floor(m/60)+"g "+(m%60)+"p"; }
+
+/* ===== GỌI & THÔNG BÁO (chủ) ===== */
+async function taiGoiActive(){
+  const box=document.getElementById("goiActive"); if(!box) return;
+  const d=await jsonp({ action:"goi_list" });
+  if(!(d&&d.ok)){ return; }
+  const list=d.list||[];
+  if(!list.length){ box.innerHTML=""; return; }
+  const ten={baove:"🛡️ Bảo vệ",chung:"📣 Gọi chung",hop:"🕐 Họp",rieng:"👤 Gọi riêng"};
+  box.innerHTML='<div style="font-size:12.5px;color:#8A7F72;font-weight:700;margin-bottom:6px">ĐANG HOẠT ĐỘNG</div>'
+    + list.map(g=>{
+      const dest = g.loai==="rieng" ? (" → "+esc(g.toiTen||"")) : "";
+      return `<div style="display:flex;align-items:center;gap:10px;background:#FAF6EE;border:1px solid #E9DFC9;border-radius:11px;padding:9px 11px;margin-bottom:7px">
+        <div style="flex:1;min-width:0"><b style="font-size:14px">${ten[g.loai]||g.loai}${dest}</b><div style="font-size:12.5px;color:#7a6f62">${esc(g.noiDung||"")}${g.tu?(" · "+esc(g.tu)):""} · ${esc(g.gio)}</div></div>
+        <button class="btn" style="background:#8A7F72;width:auto;padding:7px 11px;flex-shrink:0" onclick="ketThucGoi('${g.id}')">Kết thúc</button>
+      </div>`;
+    }).join("");
+}
+async function ketThucGoi(id){
+  const d=await jsonp({ action:"goi_xong", id, adminPass:PASS });
+  if(!d||!d.ok){ toast((d&&d.error)||"Lỗi", true); return; }
+  toast("Đã kết thúc ✓"); taiGoiActive();
+}
+async function goiChung(btn){
+  const nd=document.getElementById("gChung").value.trim();
+  const note=document.getElementById("goiNote");
+  if(!nd){ note.style.color="#C0392B"; note.textContent="Nhập nội dung gọi chung."; return; }
+  btn.disabled=true;
+  const d=await jsonp({ action:"goi_them", loai:"chung", toi:"all", noiDung:nd, tu:"Chủ quán", adminPass:PASS });
+  btn.disabled=false;
+  if(d.ok){ document.getElementById("gChung").value=""; note.style.color="#2B7A3E"; note.textContent="Đã gọi chung tất cả nhân viên ✓"; taiGoiActive(); }
+  else { note.style.color="#C0392B"; note.textContent=d.error||"Lỗi"; }
+}
+async function hopHen(btn){
+  const gio=document.getElementById("gHopGio").value.trim();
+  const nd=document.getElementById("gHopND").value.trim();
+  const note=document.getElementById("goiNote");
+  if(!gio && !nd){ note.style.color="#C0392B"; note.textContent="Nhập giờ họp hoặc nội dung."; return; }
+  const noiDung = (gio?("Họp lúc "+gio):"Họp") + (nd?(" — "+nd):"");
+  btn.disabled=true;
+  const d=await jsonp({ action:"goi_them", loai:"hop", toi:"all", noiDung, tu:"Chủ quán", adminPass:PASS });
+  btn.disabled=false;
+  if(d.ok){ document.getElementById("gHopND").value=""; note.style.color="#2B7A3E"; note.textContent="Đã gửi lịch họp tới mọi người ✓"; taiGoiActive(); }
+  else { note.style.color="#C0392B"; note.textContent=d.error||"Lỗi"; }
+}
+async function goiRieng(btn){
+  const ai=document.getElementById("gRiengAi").value;
+  const nd=document.getElementById("gRiengND").value.trim();
+  const note=document.getElementById("goiNote");
+  if(!ai){ note.style.color="#C0392B"; note.textContent="Chọn nhân viên cần gọi."; return; }
+  btn.disabled=true;
+  const d=await jsonp({ action:"goi_them", loai:"rieng", toi:ai, noiDung:nd, tu:"Chủ quán", adminPass:PASS });
+  btn.disabled=false;
+  if(d.ok){ document.getElementById("gRiengND").value=""; note.style.color="#2B7A3E"; note.textContent="Đã gọi riêng nhân viên ✓"; taiGoiActive(); }
+  else { note.style.color="#C0392B"; note.textContent=d.error||"Lỗi"; }
+}
 </script>
 </body>
 </html>

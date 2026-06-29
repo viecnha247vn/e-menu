@@ -134,10 +134,12 @@
       <div class="doanhthu">💰 Hôm nay: <b id="dtHomNay">0đ</b></div>
       <button class="reset" id="btnChuong" onclick="toggleChuong()">🔔 Chuông: Bật</button>
       <button class="reset" style="background:#7A1A1A;border-color:#a13;color:#fff" onclick="moBaoSuCo()">🚨 Báo sự cố</button>
+      <button class="reset" style="background:#b5651d;border-color:#d08030;color:#fff" onclick="moBaoVe()">🛡️ Bảo vệ</button>
       <button class="reset" onclick="xoaHet()">Xóa tất cả (cuối ngày)</button>
     </div>
   </header>
   <div class="suco-bar" id="suCoBar"></div>
+  <div class="suco-bar" id="goiBar"></div>
   <div class="sv-bar" id="svBar"></div>
   <div class="ban-bar">
     <h3>🍽️ BÀN ĐANG PHỤC VỤ — bấm để tính tiền &amp; dọn bàn</h3>
@@ -171,6 +173,18 @@
     <button class="cancel" onclick="dongSC()">Hủy</button>
   </div>
 </div>
+<div class="sc-modal" id="bvModal">
+  <div class="box">
+    <h2>🛡️ Gọi bảo vệ</h2>
+    <p>Báo bảo vệ tới vị trí cần gấp — mọi người sẽ thấy ngay.</p>
+    <div class="sc-chips" id="bvChips"></div>
+    <input id="bvNote" placeholder="Ghi chú thêm (nếu cần)">
+    <div class="sc-note" id="bvNote2"></div>
+    <button class="send" style="background:#b5651d" onclick="guiBaoVe(this)">🛡️ Gọi ngay</button>
+    <button class="cancel" onclick="document.getElementById('bvModal').classList.remove('show')">Hủy</button>
+  </div>
+</div>
+
 <div class="bep-toast" id="bepToast"></div>
 
 <script>
@@ -218,13 +232,13 @@ function vaoBep() {
   try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
   document.getElementById("pinbox").style.display = "none";
   setTimeout(ting, 300); // kêu thử 1 tiếng để xác nhận loa đã bật
-  taiDon().then(()=>{ taiSuCo(); lenLich(); });
+  taiDon().then(()=>{ taiSuCo(); taiGoiBep(); lenLich(); });
 }
 document.getElementById("pinInput").addEventListener("keydown", e => { if(e.key==="Enter") vaoBep(); });
 // Làm mới đều, tự né gọi chồng; làm mới ngay khi quay lại màn hình
 function lenLich() {
   clearTimeout(window._timer);
-  window._timer = setTimeout(async () => { await taiDon(); taiSuCo(); lenLich(); }, 2500);
+  window._timer = setTimeout(async () => { await taiDon(); taiSuCo(); taiGoiBep(); lenLich(); }, 2500);
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden && PIN) { taiDon(); lenLich(); } });
 window.addEventListener("focus", () => { if (PIN) taiDon(); });
@@ -447,6 +461,57 @@ async function xongSuCo(id){
   bepToast("Đã xử lý ✓");
   taiSuCo();
 }
+/* ===== GỌI & THÔNG BÁO (bếp) ===== */
+const VITRI_BAOVE=["Khu vực bàn ăn","Cửa ra vào","Bãi giữ xe","Nhà vệ sinh","Quầy thu ngân","Khác"];
+let bvVT="", goiData=[], seenGoi=new Set(), firstGoi=true, goiAnLocal=new Set();
+function moBaoVe(){
+  bvVT="";
+  document.getElementById("bvNote").value="";
+  document.getElementById("bvNote2").textContent="";
+  document.getElementById("bvChips").innerHTML=VITRI_BAOVE.map(v=>`<button class="sc-chip" onclick="chonVT('${escSC(v)}',this)">${escSC(v)}</button>`).join("");
+  document.getElementById("bvModal").classList.add("show");
+}
+function chonVT(v,btn){ bvVT=v; document.querySelectorAll("#bvChips .sc-chip").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); }
+async function guiBaoVe(btn){
+  const note=document.getElementById("bvNote2");
+  if(!bvVT){ note.style.color="#ff8787"; note.textContent="Chọn vị trí."; return; }
+  const them=document.getElementById("bvNote").value.trim();
+  const noiDung=bvVT+(them?(" — "+them):"");
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang gọi…";
+  const d=await jsonp({ action:"goi_them", loai:"baove", toi:"all", noiDung, tu:"Bếp", pin:PIN });
+  btn.disabled=false; btn.textContent=cu;
+  if(d&&d.ok){ if(d.id) seenGoi.add(Number(d.id)); document.getElementById("bvModal").classList.remove("show"); bepToast("Đã gọi bảo vệ ✓"); taiGoiBep(); }
+  else { note.style.color="#ff8787"; note.textContent=(d&&d.error)||"Lỗi"; }
+}
+async function taiGoiBep(){
+  const d=await jsonp({ action:"goi_list" });
+  if(!(d&&d.ok)) return;
+  const list=(d.list||[]).filter(g=>g.loai!=="rieng");   // bếp không có danh tính cá nhân
+  const coMoi=list.some(g=>!seenGoi.has(g.id));
+  if(!firstGoi && coMoi) ting();
+  seenGoi=new Set(list.map(g=>g.id));
+  firstGoi=false; goiData=list; veGoiBep();
+}
+function veGoiBep(){
+  const box=document.getElementById("goiBar");
+  const list=goiData.filter(g=>!((g.loai==="chung"||g.loai==="hop")&&goiAnLocal.has(g.id)));
+  if(!list.length){ box.innerHTML=""; return; }
+  box.innerHTML=list.map(g=>{
+    let ic="📣",title="Gọi chung",sub=g.noiDung||"Tập trung nhân viên",nut="";
+    if(g.loai==="baove"){ ic="🛡️"; title="Cần bảo vệ"; sub=g.noiDung+(g.tu?(" — báo bởi "+g.tu):""); nut=`<button onclick="xongGoiBep('${g.id}')">Đã nhận</button>`; }
+    else if(g.loai==="hop"){ ic="🕐"; title="Lịch họp"; sub=g.noiDung||"Có lịch họp"; nut=`<button onclick="goiAnBep('${g.id}')">Đã rõ</button>`; }
+    else { nut=`<button onclick="goiAnBep('${g.id}')">Đã rõ</button>`; }
+    return `<div class="suco-card" style="background:linear-gradient(180deg,#3a2412,#33200f);border-color:#8a5a1e">
+      <div class="ic">${ic}</div>
+      <div class="info"><b>${title}</b><small>${escSC(sub)} · ${escSC(g.gio)}</small></div>${nut}</div>`;
+  }).join("");
+}
+async function xongGoiBep(id){
+  const d=await jsonp({ action:"goi_xong", id, pin:PIN });
+  if(!d||!d.ok){ bepToast((d&&d.error)||"Lỗi"); return; }
+  seenGoi.delete(Number(id)); bepToast("Đã nhận ✓"); taiGoiBep();
+}
+function goiAnBep(id){ goiAnLocal.add(Number(id)); veGoiBep(); }
 </script>
 </body>
 </html>

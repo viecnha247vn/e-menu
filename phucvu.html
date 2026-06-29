@@ -61,6 +61,11 @@
   .b-bill{background:var(--xanh); color:#fff}
   .tb.suco{background:linear-gradient(180deg,#3a1414,#2e0f0f); border-color:#8a2525}
   .b-suco{background:#c0392b; color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:12.5px; font-weight:800}
+  .b-baove{background:#b5651d; color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:12.5px; font-weight:800}
+  .tb.baove{background:linear-gradient(180deg,#3a2412,#33200f); border-color:#8a5a1e}
+  .tb.chung{background:linear-gradient(180deg,#16283a,#132235); border-color:#2f4a6e}
+  .tb.hop{background:linear-gradient(180deg,#2a1a3a,#211230); border-color:#523a6e}
+  .tb.rieng{background:linear-gradient(180deg,#3a2a16,#332512); border-color:#5a4220}
   .loai-grid{display:flex; flex-wrap:wrap; gap:7px; margin:4px 0 10px}
   .loai-chip{background:#2a221c; border:1px solid var(--vien); color:var(--chu); border-radius:20px; padding:8px 13px; font-size:13px}
   .loai-chip.on{background:#c0392b; border-color:#c0392b; color:#fff; font-weight:700}
@@ -136,6 +141,13 @@
   <main class="wrap">
     <section>
       <div class="sec-h" style="display:flex;justify-content:space-between;align-items:center">
+        <span>📣 Gọi &amp; thông báo</span>
+        <button class="b-baove" onclick="moGoiBaoVe()">🛡️ Gọi bảo vệ</button>
+      </div>
+      <div id="goiList" class="tb-list"></div>
+    </section>
+    <section>
+      <div class="sec-h" style="display:flex;justify-content:space-between;align-items:center">
         <span>🚨 Sự cố</span>
         <button class="b-suco" onclick="moBaoSuCo()">＋ Báo sự cố</button>
       </div>
@@ -186,6 +198,18 @@
     <div class="hd-note" id="mhNote"></div>
     <button class="btn green" onclick="guiHD(this)">📧 Gửi hóa đơn</button>
     <button class="btn ghost" onclick="dong('modalHD')">Xong, bỏ qua</button>
+  </div>
+</div>
+
+<div class="modal" id="modalBaoVe">
+  <div class="sheet">
+    <h3>🛡️ Gọi bảo vệ</h3>
+    <p class="sub">Báo bảo vệ tới vị trí cần gấp — mọi người sẽ thấy ngay.</p>
+    <div class="loai-grid" id="bvViTri"></div>
+    <input id="bvNote" class="inp" placeholder="Ghi chú thêm (nếu cần)">
+    <div class="hd-note" id="bvNoteErr"></div>
+    <button class="btn" onclick="guiBaoVe(this)" style="background:#b5651d">🛡️ Gọi ngay</button>
+    <button class="btn ghost" onclick="dong('modalBaoVe')">Hủy</button>
   </div>
 </div>
 
@@ -254,6 +278,7 @@ function vaoApp(){
   taiDon(); lenLich();
   taiSuCo();
   capNhatCa();
+  taiGoi();
   if(!ccPoll) ccPoll=setInterval(capNhatCa, 30000);
 }
 function dangXuat(){
@@ -343,7 +368,7 @@ async function taiDon(){
 
       firstLoad=false;
       veThongBao(); veBan();
-      taiSuCo();
+      taiSuCo(); taiGoi();
       if(banMo && banData[banMo]) veChiTietBan(banMo);   // làm mới modal đang mở
       else if(banMo && !banData[banMo]){ banMo=""; dong("modalBan"); }
     }
@@ -624,6 +649,64 @@ async function bamCa(){
     if(d.ok){ PIN=saved; NV=d.nv; try{ audio=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} vaoApp(); }
   }
 })();
+/* ===== GỌI & THÔNG BÁO ===== */
+const VITRI_BAOVE = ["Khu vực bàn ăn","Cửa ra vào","Bãi giữ xe","Nhà vệ sinh","Quầy thu ngân","Khác"];
+let bvViTriChon="", goiData=[], seenGoi=new Set(), firstGoi=true, goiAnLocal=new Set();
+
+function moGoiBaoVe(){
+  bvViTriChon="";
+  document.getElementById("bvNote").value="";
+  document.getElementById("bvNoteErr").textContent="";
+  document.getElementById("bvViTri").innerHTML=VITRI_BAOVE.map(v=>`<button class="loai-chip" onclick="chonViTri('${esc(v)}',this)">${esc(v)}</button>`).join("");
+  document.getElementById("modalBaoVe").classList.add("show");
+}
+function chonViTri(v,btn){ bvViTriChon=v; document.querySelectorAll("#bvViTri .loai-chip").forEach(b=>b.classList.remove("on")); btn.classList.add("on"); }
+async function guiBaoVe(btn){
+  const note=document.getElementById("bvNoteErr");
+  if(!bvViTriChon){ note.style.color="#ff8787"; note.textContent="Chọn vị trí cần bảo vệ."; return; }
+  const them=document.getElementById("bvNote").value.trim();
+  const noiDung = bvViTriChon + (them?(" — "+them):"");
+  btn.disabled=true; const cu=btn.textContent; btn.textContent="Đang gọi…";
+  const d=await jsonp({ action:"goi_them", loai:"baove", toi:"all", noiDung, tu:(NV&&NV.ten)?NV.ten:"", pin:PIN });
+  btn.disabled=false; btn.textContent=cu;
+  if(d && d.ok){ if(d.id) seenGoi.add(Number(d.id)); dong("modalBaoVe"); toast("Đã gọi bảo vệ ✓"); taiGoi(); }
+  else { note.style.color="#ff8787"; note.textContent=(d&&d.error)||"Gọi chưa được."; }
+}
+async function taiGoi(){
+  const d=await jsonp({ action:"goi_list" });
+  if(!(d && d.ok)) return;
+  let list=(d.list||[]).filter(g => g.loai!=="rieng" || (NV && String(g.toi)===String(NV.id)));
+  const coMoi=list.some(g=>!seenGoi.has(g.id));
+  if(!firstGoi && coMoi) ting();
+  seenGoi=new Set(list.map(g=>g.id));
+  firstGoi=false;
+  goiData=list;
+  veGoi();
+}
+function veGoi(){
+  const box=document.getElementById("goiList");
+  const list=goiData.filter(g => !((g.loai==="chung"||g.loai==="hop") && goiAnLocal.has(g.id)));
+  if(!list.length){ box.innerHTML=''; return; }
+  box.innerHTML=list.map(g=>{
+    let ic="📣", title="Thông báo", sub=g.noiDung, nut="";
+    if(g.loai==="baove"){ ic="🛡️"; title="Cần bảo vệ"; sub=g.noiDung+(g.tu?(" — báo bởi "+g.tu):""); nut=`<button class="b-ok" onclick="xongGoi('${g.id}')">Đã nhận</button>`; }
+    else if(g.loai==="rieng"){ ic="👤"; title="Chủ quán gọi bạn"; sub=g.noiDung||"Gặp chủ quán"; nut=`<button class="b-ok" onclick="xongGoi('${g.id}')">Đã nhận</button>`; }
+    else if(g.loai==="hop"){ ic="🕐"; title="Lịch họp"; sub=g.noiDung||"Có lịch họp"; nut=`<button class="b-ok" onclick="goiAn('${g.id}')">Đã rõ</button>`; }
+    else { ic="📣"; title="Gọi chung"; sub=g.noiDung||"Tập trung nhân viên"; nut=`<button class="b-ok" onclick="goiAn('${g.id}')">Đã rõ</button>`; }
+    return `<div class="tb ${esc(g.loai)}"><div class="ic">${ic}</div>
+      <div class="info"><b>${title}</b><small>${esc(sub)} · ${esc(g.gio)}</small></div>
+      <div class="acts">${nut}</div></div>`;
+  }).join("");
+}
+async function xongGoi(id){
+  const d=await jsonp({ action:"goi_xong", id, pin:PIN });
+  if(!d || !d.ok){ toast((d&&d.error)||"Không xử lý được", true); return; }
+  seenGoi.delete(Number(id));
+  toast("Đã nhận ✓");
+  taiGoi();
+}
+function goiAn(id){ goiAnLocal.add(Number(id)); veGoi(); }
+
 </script>
 </body>
 </html>
